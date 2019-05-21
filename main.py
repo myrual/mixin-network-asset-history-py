@@ -1,9 +1,28 @@
+import threading
 import requests
 import datetime
 import iso8601
 import sqlalchemy
 from sqlalchemy import Column, Integer, String, Float
 from sqlalchemy.ext.declarative import declarative_base
+
+BTC_ASSET_ID    = "c6d0c728-2624-429b-8e0d-d9d19b6592fa";
+EOS_ASSET_ID    = "6cfe566e-4aad-470b-8c9a-2fd35b49c68d";
+USDT_ASSET_ID   = "815b0b1a-2764-3736-8faa-42d694fa620a"
+ETC_ASSET_ID    = "2204c1ee-0ea2-4add-bb9a-b3719cfff93a";
+XRP_ASSET_ID    = "23dfb5a5-5d7b-48b6-905f-3970e3176e27";
+XEM_ASSET_ID    = "27921032-f73e-434e-955f-43d55672ee31"
+ETH_ASSET_ID    = "43d61dcd-e413-450d-80b8-101d5e903357";
+DASH_ASSET_ID   = "6472e7e3-75fd-48b6-b1dc-28d294ee1476";
+DOGE_ASSET_ID   = "6770a1e5-6086-44d5-b60f-545f9d9e8ffd"
+LTC_ASSET_ID    = "76c802a2-7c88-447f-a93e-c29c9e5dd9c8";
+SIA_ASSET_ID    = "990c4c29-57e9-48f6-9819-7d986ea44985";
+ZEN_ASSET_ID    = "a2c5d22b-62a2-4c13-b3f0-013290dbac60"
+ZEC_ASSET_ID    = "c996abc9-d94e-4494-b1cf-2a3fd3ac5714"
+BCH_ASSET_ID    = "fd11b6e3-0b87-41f1-a41f-f0e9b49e5bf0"
+XIN_ASSET_ID    = "c94ac88f-4671-3976-b60a-09064f1811e8"
+
+
 
 Base = declarative_base()
 class ScannedSnapshots(Base):
@@ -59,8 +78,6 @@ def find_deposit_withdraw(init_time):
             name = eachSnap["asset"]["name"]
             obj = {"year":created_at.year, "month":created_at.month, "day":created_at.day, "amount":amount, "source":source, "asset_id": asset_id, "asset_key": asset_key, "asset_chain_id": asset_chain_id, "name": name}
             found_result.append(obj)
-        print(lastsnap["created_at"])
-        print(found_result)
         result = {"found_records":found_result, "lastsnap_created_at":lastsnap["created_at"]}
         return result
     return None
@@ -81,7 +98,6 @@ def loadSnap():
             program_start = last_record_in_database.created_at
         else:
             program_start = init_time
-        print(program_start)
         find_result = find_deposit_withdraw(program_start)
         if find_result != None:
             if len(find_result["found_records"]) != 0:
@@ -97,21 +113,39 @@ def loadSnap():
                     thisRecord.asset_id = eachResult["asset_id"]
                     thisRecord.asset_chain_id = eachResult["asset_chain_id"]
                     session.add(thisRecord)
-                    print(thisRecord)
 
             init_time = find_result["lastsnap_created_at"]
-            print(init_time)
             last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
+            print(init_time)
             if last_record_in_database != None:
                 last_record_in_database.created_at = init_time
-                print("update current last to %s"%init_time)
             else:
-                print("insert last %s"%init_time)
                 the_last_record = ScannedSnapshots()
                 the_last_record.created_at = init_time
                 session.add(the_last_record)
-            print("session commit")
             session.commit()
         else:
             break
-loadSnap()
+
+while True:
+    print("load snap: 1")
+    print("load xin token: 2")
+    print("load btc token: 3")
+    selection = input("your selection:")
+    if(selection == "1"):
+        t = threading.Thread(target = loadSnap)
+        t.start()
+    if(selection == "2"):
+        last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
+        print("latest scanned record is %s"%last_record_in_database.created_at)
+        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.asset_id == XIN_ASSET_ID).all()
+        for each_record in found_records:
+            print("%d %d %d %s %s"%(each_record.at_year, each_record.at_month, each_record.at_day, each_record.amount, each_record.source))
+
+    if(selection == "3"):
+        last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
+        print("latest scanned record is %s"%last_record_in_database.created_at)
+        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.asset_id == BTC_ASSET_ID).all()
+        for each_record in found_records:
+            print("%d %d %d %s %s"%(each_record.at_year, each_record.at_month, each_record.at_day, each_record.amount, each_record.source))
+
