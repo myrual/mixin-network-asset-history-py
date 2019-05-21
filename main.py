@@ -74,42 +74,44 @@ Base.metadata.bind = engine
 DBSession = sqlalchemy.orm.sessionmaker(bind=engine)
 session = DBSession()
 
-while True:
-    last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
-    if last_record_in_database != None:
-        program_start = last_record_in_database.created_at
-    else:
-        program_start = init_time
-    print(program_start)
-    find_result = find_deposit_withdraw(program_start)
-    if find_result != None:
-        if len(find_result["found_records"]) != 0:
-            for eachResult in find_result["found_records"]:
-                thisRecord = NonInternalSnapshots()
-                thisRecord.at_year = eachResult["year"]
-                thisRecord.at_month = eachResult["month"]
-                thisRecord.at_day= eachResult["day"]
-                thisRecord.amount = eachResult["amount"]
-                thisRecord.source = eachResult["source"]
-                thisRecord.asset_name = eachResult["name"]
-                thisRecord.asset_key = eachResult["asset_key"]
-                thisRecord.asset_id = eachResult["asset_id"]
-                thisRecord.asset_chain_id = eachResult["asset_chain_id"]
-                session.add(thisRecord)
-                print(thisRecord)
-
-        init_time = find_result["lastsnap_created_at"]
-        print(init_time)
+def loadSnap():
+    while True:
         last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
         if last_record_in_database != None:
-            last_record_in_database.created_at = init_time
-            print("update current last to %s"%init_time)
+            program_start = last_record_in_database.created_at
         else:
-            print("insert last %s"%init_time)
-            the_last_record = ScannedSnapshots()
-            the_last_record.created_at = init_time
-            session.add(the_last_record)
-        print("session commit")
-        session.commit()
-    else:
-        break
+            program_start = init_time
+        print(program_start)
+        find_result = find_deposit_withdraw(program_start)
+        if find_result != None:
+            if len(find_result["found_records"]) != 0:
+                for eachResult in find_result["found_records"]:
+                    thisRecord = NonInternalSnapshots()
+                    thisRecord.at_year = eachResult["year"]
+                    thisRecord.at_month = eachResult["month"]
+                    thisRecord.at_day= eachResult["day"]
+                    thisRecord.amount = eachResult["amount"]
+                    thisRecord.source = eachResult["source"]
+                    thisRecord.asset_name = eachResult["name"]
+                    thisRecord.asset_key = eachResult["asset_key"]
+                    thisRecord.asset_id = eachResult["asset_id"]
+                    thisRecord.asset_chain_id = eachResult["asset_chain_id"]
+                    session.add(thisRecord)
+                    print(thisRecord)
+
+            init_time = find_result["lastsnap_created_at"]
+            print(init_time)
+            last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
+            if last_record_in_database != None:
+                last_record_in_database.created_at = init_time
+                print("update current last to %s"%init_time)
+            else:
+                print("insert last %s"%init_time)
+                the_last_record = ScannedSnapshots()
+                the_last_record.created_at = init_time
+                session.add(the_last_record)
+            print("session commit")
+            session.commit()
+        else:
+            break
+loadSnap()
