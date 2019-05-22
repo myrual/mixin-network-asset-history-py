@@ -48,9 +48,10 @@ class NonInternalSnapshots(Base):
     asset_key = Column(String(250))
     asset_id  = Column(String(250))
     asset_chainid  = Column(String(250))
+    snapshot_id = Column(String(64), unique=True)
     def __repr__(self):
-        return "<NonInternalSnapshots (source='%s', asset name ='%s', asset id ='%s', created at ='%s', amount ='%f')>" % (
-                                  self.source, self.asset_name, self.asset_id, str(self.created_at), self.amount)
+        return "<NonInternalSnapshots (snapshot id = '%s' source='%s', asset name ='%s', asset id ='%s', created at ='%s', amount ='%f')>" % (
+                                  self.snapshot_id, self.source, self.asset_name, self.asset_id, str(self.created_at), self.amount)
 
 api_url = "https://api.mixin.one/network/snapshots"
 mixin_init_time = "2006-01-02T15:04:05.999999999Z"
@@ -66,15 +67,15 @@ def find_deposit_withdraw(init_time):
         for eachSnap in snapshots:
             amount = float(eachSnap["amount"])
             created_at = iso8601.parse_date(eachSnap["created_at"])
-            in_record_created = datetime.datetime(created_at.year, created_at.month, created_at.day, tzinfo = datetime.timezone.utc)
             source = eachSnap["source"]
             if source != "WITHDRAWAL_INITIALIZED" and source != "DEPOSIT_CONFIRMED":
                 break
+            snapshot_id = eachSnap["snapshot_id"]
             asset_id = eachSnap["asset"]["asset_id"]
             asset_key = eachSnap["asset"]["asset_key"]
             asset_chain_id = eachSnap["asset"]["chain_id"]
             name = eachSnap["asset"]["name"]
-            obj = {"created_at":created_at, "amount":amount, "source":source, "asset_id": asset_id, "asset_key": asset_key, "asset_chain_id": asset_chain_id, "name": name}
+            obj = {"snapshot_id":snapshot_id, "created_at":created_at, "amount":amount, "source":source, "asset_id": asset_id, "asset_key": asset_key, "asset_chain_id": asset_chain_id, "name": name}
             found_result.append(obj)
         result = {"found_records":found_result, "lastsnap_created_at":lastsnap["created_at"]}
         return result
@@ -88,6 +89,32 @@ Base.metadata.bind = engine
 
 DBSession = sqlalchemy.orm.sessionmaker(bind=engine)
 session = DBSession()
+
+def loadSnapOnDateTime(start_time, end_time):
+
+    total_result = []
+    thisDate         = start_time.isoformat()
+    last_snap_string = start_time.isoformat()
+    while True: 
+        print(thisDate)
+        find_result = find_deposit_withdraw(thisDate)
+        if find_result != None:
+            for eachResult in find_result["found_records"]:
+                total_result.append(eachResult)
+            last_snap_string = find_result["lastsnap_created_at"]
+            print(last_snap_string)
+            theLastDate = iso8601.parse_date(last_snap_string)
+            if theLastDate < end_time:
+                thisDate = last_snap_string
+                continue
+            else:
+                return (total_result, last_snap_string)
+        else:
+            return (total_result, last_snap_string)
+    return (total_result, last_snap_string)
+
+
+
 
 def loadSnap():
     while True:
@@ -108,6 +135,7 @@ def loadSnap():
                     thisRecord.asset_key = eachResult["asset_key"]
                     thisRecord.asset_id = eachResult["asset_id"]
                     thisRecord.asset_chain_id = eachResult["asset_chain_id"]
+                    thisRecord.snapshot_id = eachResult["snapshot_id"]
                     session.add(thisRecord)
 
             init_time = find_result["lastsnap_created_at"]
@@ -130,8 +158,29 @@ while True:
     print("load all token: 4")
     selection = input("your selection:")
     if(selection == "1"):
-        t = threading.Thread(target = loadSnap)
-        t.start()
+        year = input("year:")
+        month = input("month:")
+        day = input("day:")
+        offset_days = int(input("offset days"))
+        start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
+        end = start + datetime.timedelta(days = offset_days)
+        result = loadSnapOnDateTime(start, end)
+        print(result)
+        found_records = result[0]
+        for eachRecord  in found_records:
+            if session.query(NonInternalSnapshots).filter(NonInternalSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
+                this = NonInternalSnapshots()
+                this.snapshot_id = eachRecord["snapshot_id"]
+                this.amount = eachRecord["amount"]
+                this.created_at = eachRecord["created_at"]
+                this.source = eachRecord["source"]
+                this.asset_id = eachRecord["asset_id"]
+                this.asset_key = eachRecord["asset_key"]
+                this.asset_chain_id = eachRecord["asset_chain_id"]
+                this.asset_name = eachRecord["name"]
+                session.add(this)
+        session.commit()
+        last_record = result[1]
     if(selection == "2"):
         last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
         print("latest scanned record is %s"%last_record_in_database.created_at)
@@ -146,8 +195,6 @@ while True:
         for each_record in found_records:
             print(each_record)
     if(selection == "4"):
-        last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
-        print("latest scanned record is %s"%last_record_in_database.created_at)
         found_records = session.query(NonInternalSnapshots).all()
         total_result = {}
         for each_record in found_records:
