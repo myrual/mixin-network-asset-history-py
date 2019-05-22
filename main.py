@@ -1,3 +1,8 @@
+import gevent
+from gevent.queue import Queue
+from gevent import monkey
+monkey.patch_all()
+
 import threading
 import requests
 import datetime
@@ -90,13 +95,14 @@ Base.metadata.bind = engine
 DBSession = sqlalchemy.orm.sessionmaker(bind=engine)
 session = DBSession()
 
+tasks = Queue()
 def loadSnapOnDateTime(start_time, end_time):
 
     total_result = []
     thisDate         = start_time.isoformat()
     last_snap_string = start_time.isoformat()
     while True: 
-        print(thisDate)
+        print("seaching %s in %s"%(thisDate, start_time))
         find_result = find_deposit_withdraw(thisDate)
         if find_result != None:
             for eachResult in find_result["found_records"]:
@@ -108,13 +114,14 @@ def loadSnapOnDateTime(start_time, end_time):
                 thisDate = last_snap_string
                 continue
             else:
-                return (total_result, last_snap_string)
+                print("exit because %s >= %s"%(last_snap_string, str(end_time)))
+                tasks.put((total_result, last_snap_string))
+                return
         else:
-            return (total_result, last_snap_string)
-    return (total_result, last_snap_string)
-
-
-
+            tasks.put((total_result, last_snap_string))
+            return
+    tasks.put((total_result, last_snap_string))
+    return
 
 def loadSnap():
     while True:
@@ -164,23 +171,45 @@ while True:
         offset_days = int(input("offset days"))
         start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
         end = start + datetime.timedelta(days = offset_days)
-        result = loadSnapOnDateTime(start, end)
-        print(result)
-        found_records = result[0]
-        for eachRecord  in found_records:
-            if session.query(NonInternalSnapshots).filter(NonInternalSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
-                this                = NonInternalSnapshots()
-                this.snapshot_id    = eachRecord["snapshot_id"]
-                this.amount         = eachRecord["amount"]
-                this.created_at     = eachRecord["created_at"]
-                this.source         = eachRecord["source"]
-                this.asset_id       = eachRecord["asset_id"]
-                this.asset_key      = eachRecord["asset_key"]
-                this.asset_chain_id = eachRecord["asset_chain_id"]
-                this.asset_name     = eachRecord["name"]
-                session.add(this)
-        session.commit()
-        last_record = result[1]
+
+        allspawn = []
+        d1 = gevent.spawn(loadSnapOnDateTime, start, start+datetime.timedelta(days = offset_days))
+        allspawn.append(d1)
+
+
+        start = start+datetime.timedelta(days = offset_days)
+        d2 = gevent.spawn(loadSnapOnDateTime, start, start+datetime.timedelta(days = offset_days))
+        allspawn.append(d2)
+
+        start = start+datetime.timedelta(days = offset_days)
+        d3 = gevent.spawn(loadSnapOnDateTime, start, start+datetime.timedelta(days = offset_days))
+        allspawn.append(d3)
+
+        start = start+datetime.timedelta(days = offset_days)
+        d4 = gevent.spawn(loadSnapOnDateTime, start, start+datetime.timedelta(days = offset_days))
+        allspawn.append(d4)
+
+        gevent.joinall(allspawn)
+
+        for i in range(1):
+            result = tasks.get()
+            print(result)
+            found_records = result[0]
+            for eachRecord  in found_records:
+                if session.query(NonInternalSnapshots).filter(NonInternalSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
+                    this                = NonInternalSnapshots()
+                    this.snapshot_id    = eachRecord["snapshot_id"]
+                    this.amount         = eachRecord["amount"]
+                    this.created_at     = eachRecord["created_at"]
+                    this.source         = eachRecord["source"]
+                    this.asset_id       = eachRecord["asset_id"]
+                    this.asset_key      = eachRecord["asset_key"]
+                    this.asset_chain_id = eachRecord["asset_chain_id"]
+                    this.asset_name     = eachRecord["name"]
+                    session.add(this)
+            session.commit()
+            last_record = result[1]
+            print(last_record)
     if(selection == "2"):
         last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
         print("latest scanned record is %s"%last_record_in_database.created_at)
