@@ -169,15 +169,15 @@ while True:
         found_records = result[0]
         for eachRecord  in found_records:
             if session.query(NonInternalSnapshots).filter(NonInternalSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
-                this = NonInternalSnapshots()
-                this.snapshot_id = eachRecord["snapshot_id"]
-                this.amount = eachRecord["amount"]
-                this.created_at = eachRecord["created_at"]
-                this.source = eachRecord["source"]
-                this.asset_id = eachRecord["asset_id"]
-                this.asset_key = eachRecord["asset_key"]
+                this                = NonInternalSnapshots()
+                this.snapshot_id    = eachRecord["snapshot_id"]
+                this.amount         = eachRecord["amount"]
+                this.created_at     = eachRecord["created_at"]
+                this.source         = eachRecord["source"]
+                this.asset_id       = eachRecord["asset_id"]
+                this.asset_key      = eachRecord["asset_key"]
                 this.asset_chain_id = eachRecord["asset_chain_id"]
-                this.asset_name = eachRecord["name"]
+                this.asset_name     = eachRecord["name"]
                 session.add(this)
         session.commit()
         last_record = result[1]
