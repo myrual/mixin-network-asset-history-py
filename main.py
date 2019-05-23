@@ -105,7 +105,6 @@ def loadSnapOnDateTime(start_time, end_time):
     thisDate         = start_time.isoformat()
     last_snap_string = start_time.isoformat()
     while True: 
-        print("seaching %s in %s"%(thisDate, start_time))
         find_result = find_deposit_withdraw(thisDate)
         if find_result != None:
             for eachResult in find_result["found_records"]:
@@ -172,29 +171,19 @@ while True:
         month = input("month:")
         day = input("day:")
         offset_days = int(input("offset days"))
-        start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
-        end = start + datetime.timedelta(days = offset_days)
 
         allspawn = []
-        d1 = gevent.spawn(loadSnapOnDateTime, start, start+datetime.timedelta(days = offset_days))
-        allspawn.append(d1)
+        start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
+        for i in range(offset_days):
+            this_start = start + datetime.timedelta(days = i)
+            end = start + datetime.timedelta(days = (1 + i))
 
-
-        start = start+datetime.timedelta(days = offset_days)
-        d2 = gevent.spawn(loadSnapOnDateTime, start, start+datetime.timedelta(days = offset_days))
-        allspawn.append(d2)
-
-        start = start+datetime.timedelta(days = offset_days)
-        d3 = gevent.spawn(loadSnapOnDateTime, start, start+datetime.timedelta(days = offset_days))
-        allspawn.append(d3)
-
-        start = start+datetime.timedelta(days = offset_days)
-        d4 = gevent.spawn(loadSnapOnDateTime, start, start+datetime.timedelta(days = offset_days))
-        allspawn.append(d4)
+            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            allspawn.append(d)
 
         gevent.joinall(allspawn)
 
-        for i in range(4):
+        for i in range(len(allspawn)):
             result = tasks.get()
             print(result)
             found_records = result[0]
