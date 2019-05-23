@@ -105,12 +105,12 @@ def loadSnapOnDateTime(start_time, end_time):
     thisDate         = start_time.isoformat()
     last_snap_string = start_time.isoformat()
     while True: 
+        print(thisDate)
         find_result = find_deposit_withdraw(thisDate)
         if find_result != None:
             for eachResult in find_result["found_records"]:
                 total_result.append(eachResult)
             last_snap_string = find_result["lastsnap_created_at"]
-            print(last_snap_string)
             theLastDate = iso8601.parse_date(last_snap_string)
             if theLastDate < end_time:
                 thisDate = last_snap_string
@@ -176,8 +176,23 @@ while True:
         start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
         for i in range(offset_days):
             this_start = start + datetime.timedelta(days = i)
-            end = start + datetime.timedelta(days = (1 + i))
+            end = this_start + datetime.timedelta(hours = 6)
+            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            allspawn.append(d)
 
+            this_start = end
+            end = this_start + datetime.timedelta(hours = 6)
+            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            allspawn.append(d)
+
+            this_start = end
+            end = this_start + datetime.timedelta(hours = 6)
+            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            allspawn.append(d)
+
+
+            this_start = end
+            end = this_start + datetime.timedelta(hours = 6)
             d = gevent.spawn(loadSnapOnDateTime, this_start, end)
             allspawn.append(d)
 
@@ -217,7 +232,11 @@ while True:
         for each_record in found_records:
             print(each_record)
     if(selection == "4"):
-        found_records = session.query(NonInternalSnapshots).all()
+        year = int(input("year:"))
+        month = int(input("month:"))
+        day = int(input("day:"))
+        target = datetime.datetime(year, month, day,0,0, tzinfo=datetime.timezone.utc)
+        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < target).all()
         total_result = {}
         for each_record in found_records:
             if each_record.asset_id in total_result:
@@ -227,7 +246,6 @@ while True:
             else:
                 total_result[each_record.asset_id] = each_record.amount
 
-            print(each_record)
         all_asset_ids = total_result.keys()
         for each_id in all_asset_ids:
             each_asset_info = requests.get("https://api.mixin.one/network/assets/"+each_id).json()
