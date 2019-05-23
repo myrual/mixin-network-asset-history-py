@@ -176,25 +176,43 @@ while True:
         start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
         for i in range(offset_days):
             this_start = start + datetime.timedelta(days = i)
-            end = this_start + datetime.timedelta(hours = 6)
+            end = this_start + datetime.timedelta(hours = 3)
             d = gevent.spawn(loadSnapOnDateTime, this_start, end)
             allspawn.append(d)
 
             this_start = end
-            end = this_start + datetime.timedelta(hours = 6)
+            end = this_start + datetime.timedelta(hours = 3)
             d = gevent.spawn(loadSnapOnDateTime, this_start, end)
             allspawn.append(d)
 
             this_start = end
-            end = this_start + datetime.timedelta(hours = 6)
+            end = this_start + datetime.timedelta(hours = 3)
             d = gevent.spawn(loadSnapOnDateTime, this_start, end)
             allspawn.append(d)
 
 
             this_start = end
-            end = this_start + datetime.timedelta(hours = 6)
+            end = this_start + datetime.timedelta(hours = 3)
             d = gevent.spawn(loadSnapOnDateTime, this_start, end)
             allspawn.append(d)
+            this_start = end
+            end = this_start + datetime.timedelta(hours = 3)
+            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            allspawn.append(d)
+            this_start = end
+            end = this_start + datetime.timedelta(hours = 3)
+            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            allspawn.append(d)
+            this_start = end
+            end = this_start + datetime.timedelta(hours = 3)
+            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            allspawn.append(d)
+
+            this_start = end
+            end = this_start + datetime.timedelta(hours = 3)
+            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            allspawn.append(d)
+
 
         gevent.joinall(allspawn)
 
@@ -219,18 +237,32 @@ while True:
             print(last_record)
             print(result[2])
     if(selection == "2"):
-        last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
-        print("latest scanned record is %s"%last_record_in_database.created_at)
-        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.asset_id == XIN_ASSET_ID).all()
-        for each_record in found_records:
-            print(each_record)
+        first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
+        today = datetime.datetime.now(datetime.timezone.utc)
+        diff = (today - first_day).days
+        daily_btc_balance = []
+        for i in range(diff):
+            this_day = first_day + datetime.timedelta(days = i)
+            found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == XIN_ASSET_ID).all()
+            old = 0
+            for each_record in found_records:
+                old += each_record.amount
+            daily_btc_balance.append(old)
+        print(daily_btc_balance)
 
     if(selection == "3"):
-        last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
-        print("latest scanned record is %s"%last_record_in_database.created_at)
-        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.asset_id == BTC_ASSET_ID).all()
-        for each_record in found_records:
-            print(each_record)
+        first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
+        today = datetime.datetime.now(datetime.timezone.utc)
+        diff = (today - first_day).days
+        daily_btc_balance = []
+        for i in range(diff):
+            this_day = first_day + datetime.timedelta(days = i)
+            found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == BTC_ASSET_ID).all()
+            old = 0
+            for each_record in found_records:
+                old += each_record.amount
+            daily_btc_balance.append(old)
+        print(daily_btc_balance)
     if(selection == "4"):
         year = int(input("year:"))
         month = int(input("month:"))
