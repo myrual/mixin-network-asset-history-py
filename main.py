@@ -64,27 +64,30 @@ mixin_init_time = "2006-01-02T15:04:05.999999999Z"
 def find_deposit_withdraw(init_time):
     payload = {'limit':500, 'offset':init_time, 'order':"ASC"}
 
-    result_ob = requests.get(api_url, params = payload).json()
-    if "data" in result_ob:
-        snapshots = result_ob["data"]
-        lastsnap = snapshots[-1]
-        found_result = []
-        for eachSnap in snapshots:
-            amount = float(eachSnap["amount"])
-            created_at = iso8601.parse_date(eachSnap["created_at"])
-            source = eachSnap["source"]
-            if source != "WITHDRAWAL_INITIALIZED" and source != "DEPOSIT_CONFIRMED":
-                break
-            snapshot_id = eachSnap["snapshot_id"]
-            asset_id = eachSnap["asset"]["asset_id"]
-            asset_key = eachSnap["asset"]["asset_key"]
-            asset_chain_id = eachSnap["asset"]["chain_id"]
-            name = eachSnap["asset"]["name"]
-            obj = {"snapshot_id":snapshot_id, "created_at":created_at, "amount":amount, "source":source, "asset_id": asset_id, "asset_key": asset_key, "asset_chain_id": asset_chain_id, "name": name}
-            found_result.append(obj)
-        result = {"found_records":found_result, "lastsnap_created_at":lastsnap["created_at"]}
-        return result
-    return None
+    try:
+        result_ob = requests.get(api_url, params = payload).json()
+        if "data" in result_ob:
+            snapshots = result_ob["data"]
+            lastsnap = snapshots[-1]
+            found_result = []
+            for eachSnap in snapshots:
+                amount = float(eachSnap["amount"])
+                created_at = iso8601.parse_date(eachSnap["created_at"])
+                source = eachSnap["source"]
+                if source != "WITHDRAWAL_INITIALIZED" and source != "DEPOSIT_CONFIRMED":
+                    break
+                snapshot_id = eachSnap["snapshot_id"]
+                asset_id = eachSnap["asset"]["asset_id"]
+                asset_key = eachSnap["asset"]["asset_key"]
+                asset_chain_id = eachSnap["asset"]["chain_id"]
+                name = eachSnap["asset"]["name"]
+                obj = {"snapshot_id":snapshot_id, "created_at":created_at, "amount":amount, "source":source, "asset_id": asset_id, "asset_key": asset_key, "asset_chain_id": asset_chain_id, "name": name}
+                found_result.append(obj)
+            result = {"found_records":found_result, "lastsnap_created_at":lastsnap["created_at"]}
+            return result
+        return None
+    except:
+        return None
 
 engine = sqlalchemy.create_engine('sqlite:///mixin_asset.db')
 # Create all tables in the engine. This is equivalent to "Create Table"
@@ -115,12 +118,12 @@ def loadSnapOnDateTime(start_time, end_time):
                 continue
             else:
                 print("exit because %s >= %s"%(last_snap_string, str(end_time)))
-                tasks.put((total_result, last_snap_string))
+                tasks.put((total_result, last_snap_string, (start_time, end_time)))
                 return
         else:
-            tasks.put((total_result, last_snap_string))
+            tasks.put((total_result, last_snap_string, (start_time, end_time)))
             return
-    tasks.put((total_result, last_snap_string))
+    tasks.put((total_result, last_snap_string, (start_time, end_time)))
     return
 
 def loadSnap():
@@ -191,7 +194,7 @@ while True:
 
         gevent.joinall(allspawn)
 
-        for i in range(1):
+        for i in range(4):
             result = tasks.get()
             print(result)
             found_records = result[0]
@@ -210,6 +213,7 @@ while True:
             session.commit()
             last_record = result[1]
             print(last_record)
+            print(result[2])
     if(selection == "2"):
         last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
         print("latest scanned record is %s"%last_record_in_database.created_at)
@@ -235,6 +239,19 @@ while True:
                 total_result[each_record.asset_id] = each_record.amount
 
             print(each_record)
-        print(total_result)
+        all_asset_ids = total_result.keys()
+        for each_id in all_asset_ids:
+            each_asset_info = requests.get("https://api.mixin.one/network/assets/"+each_id).json()
+            if "data" in each_asset_info:
+                asset_value = each_asset_info["data"]
+                asset_chain_name = ""
+                if asset_value["chain_id"] == BTC_ASSET_ID:
+                    asset_chain_name += "Bitcoin"
+                elif asset_value["chain_id"] == ETH_ASSET_ID:
+                    asset_chain_name += "Ethereum"
+                elif asset_value["chain_id"] == EOS_ASSET_ID:
+                    asset_chain_name += "EOS"
+                amount_string = str(int(total_result[each_id])).ljust(15)
+                print(amount_string + "%s on chain %s id: %s"%(asset_value["name"].ljust(15) ,asset_chain_name.ljust(15), asset_value["asset_id"]))
 
 
