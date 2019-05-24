@@ -108,7 +108,6 @@ def loadSnapOnDateTime(start_time, end_time):
     thisDate         = start_time.isoformat()
     last_snap_string = start_time.isoformat()
     while True: 
-        print(thisDate)
         find_result = find_deposit_withdraw(thisDate)
         if find_result != None:
             for eachResult in find_result["found_records"]:
@@ -192,43 +191,19 @@ while True:
         start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
         end = ""
         for i in range(offset_days):
+            hour_interval = 1 
+            times = 24/hour_interval
             this_start = start + datetime.timedelta(days = i)
-            end = this_start + datetime.timedelta(hours = 3)
+            end = this_start + datetime.timedelta(hours = hour_interval)
             d = gevent.spawn(loadSnapOnDateTime, this_start, end)
             allspawn.append(d)
 
-            this_start = end
-            end = this_start + datetime.timedelta(hours = 3)
-            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-            allspawn.append(d)
-
-            this_start = end
-            end = this_start + datetime.timedelta(hours = 3)
-            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-            allspawn.append(d)
-
-
-            this_start = end
-            end = this_start + datetime.timedelta(hours = 3)
-            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-            allspawn.append(d)
-            this_start = end
-            end = this_start + datetime.timedelta(hours = 3)
-            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-            allspawn.append(d)
-            this_start = end
-            end = this_start + datetime.timedelta(hours = 3)
-            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-            allspawn.append(d)
-            this_start = end
-            end = this_start + datetime.timedelta(hours = 3)
-            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-            allspawn.append(d)
-
-            this_start = end
-            end = this_start + datetime.timedelta(hours = 3)
-            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-            allspawn.append(d)
+            #replicate the operation 
+            for i in range(int(times) - 1):
+                this_start = end
+                end = this_start + datetime.timedelta(hours = hour_interval)
+                d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+                allspawn.append(d)
             print(end)
 
 
