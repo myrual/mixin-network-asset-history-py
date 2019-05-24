@@ -191,17 +191,17 @@ while True:
         start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
         end = ""
         for i in range(offset_days):
-            hour_interval = 1 
-            times = 24/hour_interval
+            minutes_interval = 20
+            times = 24 * 60/minutes_interval
             this_start = start + datetime.timedelta(days = i)
-            end = this_start + datetime.timedelta(hours = hour_interval)
+            end = this_start + datetime.timedelta(minutes = minutes_interval)
             d = gevent.spawn(loadSnapOnDateTime, this_start, end)
             allspawn.append(d)
 
             #replicate the operation 
             for i in range(int(times) - 1):
                 this_start = end
-                end = this_start + datetime.timedelta(hours = hour_interval)
+                end = this_start + datetime.timedelta(minutes = minutes_interval)
                 d = gevent.spawn(loadSnapOnDateTime, this_start, end)
                 allspawn.append(d)
             print(end)
@@ -256,7 +256,6 @@ while True:
             print(this_day)
             for each_record in found_records:
                 old += each_record.amount
-                print(each_record)
             daily_btc_balance.append(old)
         print(daily_btc_balance)
     if(selection == "4"):
