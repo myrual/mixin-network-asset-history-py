@@ -1,2 +1,4 @@
 requests
 iso8601
+gevent
+sqlalchemy

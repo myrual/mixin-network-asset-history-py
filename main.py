@@ -190,6 +190,7 @@ while True:
 
         allspawn = []
         start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
+        end = ""
         for i in range(offset_days):
             this_start = start + datetime.timedelta(days = i)
             end = this_start + datetime.timedelta(hours = 3)
@@ -228,6 +229,7 @@ while True:
             end = this_start + datetime.timedelta(hours = 3)
             d = gevent.spawn(loadSnapOnDateTime, this_start, end)
             allspawn.append(d)
+            print(end)
 
 
         gevent.joinall(allspawn)
@@ -252,6 +254,7 @@ while True:
             last_record = result[1]
             print(last_record)
             print(result[2])
+        print(end)
     if(selection == "2"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
         today = datetime.datetime.now(datetime.timezone.utc)
