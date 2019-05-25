@@ -260,6 +260,11 @@ while True:
                 old += each_record.amount
 
             print("%s %d"%(this_day, old))
+    if(selection == "5"):
+        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.asset_id == BTC_ASSET_ID).all()
+        for each_record in found_records:
+            print(each_record.created_at, each_record.source, each_record.amount)
+
     if(selection == "4"):
         year = int(input("year:"))
         month = int(input("month:"))
