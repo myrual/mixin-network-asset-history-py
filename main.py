@@ -76,7 +76,7 @@ def find_deposit_withdraw(init_time):
                     created_at = iso8601.parse_date(eachSnap["created_at"])
                     source = eachSnap["source"]
                     if source != "WITHDRAWAL_INITIALIZED" and source != "DEPOSIT_CONFIRMED":
-                        break
+                        continue
                     snapshot_id = eachSnap["snapshot_id"]
                     asset_id = eachSnap["asset"]["asset_id"]
                     asset_key = eachSnap["asset"]["asset_key"]
