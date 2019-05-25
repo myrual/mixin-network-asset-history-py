@@ -246,18 +246,20 @@ while True:
 
     if(selection == "3"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
-        today = datetime.datetime.now(datetime.timezone.utc)
+        year = int(input("year:"))
+        month = int(input("month:"))
+        day = int(input("day"))
+        today = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
         diff = (today - first_day).days
         daily_btc_balance = []
         for i in range(diff):
             this_day = first_day + datetime.timedelta(days = i)
             found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == BTC_ASSET_ID).all()
             old = 0
-            print(this_day)
             for each_record in found_records:
                 old += each_record.amount
-            daily_btc_balance.append(old)
-        print(daily_btc_balance)
+
+            print("%s %d"%(this_day, old))
     if(selection == "4"):
         year = int(input("year:"))
         month = int(input("month:"))
