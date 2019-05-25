@@ -214,7 +214,6 @@ while True:
 
         for i in range(len(allspawn)):
             result = tasks.get()
-            print(result)
             found_records = result[0]
             for eachRecord  in found_records:
                 if session.query(NonInternalSnapshots).filter(NonInternalSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
