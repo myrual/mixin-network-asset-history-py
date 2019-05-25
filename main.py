@@ -196,12 +196,15 @@ while True:
             this_start = start + datetime.timedelta(days = i)
             end = this_start + datetime.timedelta(minutes = minutes_interval)
             d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            print(this_start, end)
             allspawn.append(d)
 
             #replicate the operation 
             for i in range(int(times) - 1):
                 this_start = end
                 end = this_start + datetime.timedelta(minutes = minutes_interval)
+                print(this_start, end)
+
                 d = gevent.spawn(loadSnapOnDateTime, this_start, end)
                 allspawn.append(d)
             print(end)
@@ -264,6 +267,11 @@ while True:
         found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.asset_id == BTC_ASSET_ID).all()
         for each_record in found_records:
             print(each_record.created_at, each_record.source, each_record.amount)
+    if(selection == "6"):
+        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.asset_id == XIN_ASSET_ID).all()
+        for each_record in found_records:
+            print(each_record.created_at, each_record.source, each_record.amount)
+
 
     if(selection == "4"):
         year = int(input("year:"))
