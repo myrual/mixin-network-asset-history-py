@@ -175,6 +175,19 @@ def output_asset_with_amount(each_id, amount_string):
             asset_chain_name += "EOS"
         print(amount_string + "%s on chain %s id: %s"%(asset_value["name"].ljust(15) ,asset_chain_name.ljust(15), asset_value["asset_id"]))
 
+def search_asset(year, month, day, asset_id):
+    today = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
+    diff = (today - first_day).days
+    daily_btc_balance = []
+    for i in range(diff):
+        this_day = first_day + datetime.timedelta(days = i)
+        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == asset_id).all()
+        old = 0
+        for each_record in found_records:
+            old += each_record.amount
+
+        print("%s %d"%(this_day, old))
+
 while True:
     print("load snap: 1")
     print("load xin token: 2")
@@ -234,17 +247,10 @@ while True:
         print(end)
     if(selection == "2"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
-        today = datetime.datetime.now(datetime.timezone.utc)
-        diff = (today - first_day).days
-        daily_btc_balance = []
-        for i in range(diff):
-            this_day = first_day + datetime.timedelta(days = i)
-            found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == XIN_ASSET_ID).all()
-            old = 0
-            for each_record in found_records:
-                old += each_record.amount
-            daily_btc_balance.append(old)
-        print(daily_btc_balance)
+        year = int(input("year:"))
+        month = int(input("month:"))
+        day = int(input("day"))
+        search_asset(year, month, day, XIN_ASSET_ID)
 
     if(selection == "3"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
