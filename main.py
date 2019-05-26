@@ -6,6 +6,7 @@ monkey.patch_all()
 import threading
 import requests
 import datetime
+import csv
 import iso8601
 import sqlalchemy
 from sqlalchemy import Column, Integer, String, Float, DateTime
@@ -277,14 +278,18 @@ while True:
         today = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
         diff = (today - first_day).days
         daily_btc_balance = []
-        for i in range(diff):
-            this_day = first_day + datetime.timedelta(days = i)
-            found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == BTC_ASSET_ID).all()
-            old = 0
-            for each_record in found_records:
-                old += each_record.amount
+        with open("btc_"+str(year) +"_"+ str(month) +"_"+ str(day)+".csv", 'a', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            for i in range(diff):
+                this_day = first_day + datetime.timedelta(days = i)
+                found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == BTC_ASSET_ID).all()
+                old = 0
+                for each_record in found_records:
+                    old += each_record.amount
 
-            print("%s %d"%(this_day, old))
+                print("%s %d"%(datetime.date(this_day.year, this_day.month, this_day.day), old))
+
+                csvwriter.writerow([datetime.date(this_day.year, this_day.month, this_day.day),old])
     if(selection == "5"):
         found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.asset_id == BTC_ASSET_ID).all()
         for each_record in found_records:
