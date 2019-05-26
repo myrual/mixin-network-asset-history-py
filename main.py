@@ -193,6 +193,9 @@ while True:
     print("load xin token: 2")
     print("load btc token: 3")
     print("load all token: 4")
+    print("load EOS token: 7")
+    print("load USDT token: 8")
+
     selection = input("your selection:")
     if(selection == "1"):
         year = input("year:")
@@ -251,6 +254,20 @@ while True:
         month = int(input("month:"))
         day = int(input("day"))
         search_asset(year, month, day, XIN_ASSET_ID)
+    if(selection == "7"):
+        first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
+        year = int(input("year:"))
+        month = int(input("month:"))
+        day = int(input("day"))
+        search_asset(year, month, day, EOS_ASSET_ID)
+    if(selection == "8"):
+        first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
+        year = int(input("year:"))
+        month = int(input("month:"))
+        day = int(input("day"))
+        search_asset(year, month, day, USDT_ASSET_ID)
+
+
 
     if(selection == "3"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
