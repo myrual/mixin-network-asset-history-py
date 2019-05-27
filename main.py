@@ -70,6 +70,8 @@ def find_deposit_withdraw(init_time):
             result_ob = requests.get(api_url, params = payload).json()
             if "data" in result_ob:
                 snapshots = result_ob["data"]
+                if len(snapshots) == 0:
+                    return None
                 lastsnap = snapshots[-1]
                 found_result = []
                 for eachSnap in snapshots:
