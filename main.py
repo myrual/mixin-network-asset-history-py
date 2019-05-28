@@ -11,6 +11,7 @@ import iso8601
 import sqlalchemy
 from sqlalchemy import Column, Integer, String, Float, DateTime
 from sqlalchemy.ext.declarative import declarative_base
+from prettytable import PrettyTable
 
 BTC_ASSET_ID    = "c6d0c728-2624-429b-8e0d-d9d19b6592fa";
 EOS_ASSET_ID    = "6cfe566e-4aad-470b-8c9a-2fd35b49c68d";
@@ -27,6 +28,8 @@ ZEN_ASSET_ID    = "a2c5d22b-62a2-4c13-b3f0-013290dbac60"
 ZEC_ASSET_ID    = "c996abc9-d94e-4494-b1cf-2a3fd3ac5714"
 BCH_ASSET_ID    = "fd11b6e3-0b87-41f1-a41f-f0e9b49e5bf0"
 XIN_ASSET_ID    = "c94ac88f-4671-3976-b60a-09064f1811e8"
+
+Asset_group = {"BTC":BTC_ASSET_ID, "EOS":EOS_ASSET_ID, "USDT":USDT_ASSET_ID, "XIN":XIN_ASSET_ID, "LTC":LTC_ASSET_ID, "ZEC":ZEC_ASSET_ID}
 
 
 
@@ -190,10 +193,18 @@ def search_asset(year, month, day, asset_id):
             old += each_record.amount
 
         print("%s %d"%(this_day, old))
+def search_asset_between(year, month, day, first_day,asset_id):
+    today = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
+    diff = (today - first_day).days
+    daily_btc_balance = []
+    found_records = session.query(NonInternalSnapshots).order_by(NonInternalSnapshots.created_at).filter(NonInternalSnapshots.created_at > first_day).filter(NonInternalSnapshots.created_at < today).filter(NonInternalSnapshots.asset_id == asset_id).all()
+    for each_record in found_records:
+        print(each_record)
+
 
 while True:
     print("load snap: 1")
-    print("load xin token: 2")
+    print("show everyday asset: 2")
     print("load btc token: 3")
     print("load all token: 4")
     print("load EOS token: 7")
@@ -256,13 +267,57 @@ while True:
         year = int(input("year:"))
         month = int(input("month:"))
         day = int(input("day"))
-        search_asset(year, month, day, XIN_ASSET_ID)
-    if(selection == "7"):
-        first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
+        asset_keys = list(Asset_group.keys())
+        k = 0
+        for i in asset_keys:
+            print("%d: %s"%(k, i))
+            k += 1
+        asset_index = int(input("your asset index:"))
+        key = asset_keys[asset_index]
+        asset_id = Asset_group[key]
+        today = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
+        diff = (today - first_day).days
+        daily_btc_balance = []
+        x = PrettyTable()
+        x.field_names = ["date", "accumulated amount"]
+        now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        with open(key+"_"+str(year) +"_"+ str(month) +"_"+ str(day)+"created_at" + now+".csv", 'a', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            for i in range(diff):
+                this_day = first_day + datetime.timedelta(days = i)
+                found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == asset_id).all()
+                old = 0
+                for each_record in found_records:
+                    old += each_record.amount
+                csvwriter.writerow([datetime.date(this_day.year, this_day.month, this_day.day),int(old)])
+                x.add_row([datetime.date(this_day.year, this_day.month, this_day.day), int(old)])
+        print(x)
+    if(selection == "10"):
+        start_year = int(input("start year:"))
+        start_month = int(input("start month:"))
+        start_day = int(input("start day:"))
+
+
+        first_day = datetime.datetime(start_year, start_month, start_day, 0, 0, tzinfo=datetime.timezone.utc)
         year = int(input("year:"))
         month = int(input("month:"))
         day = int(input("day"))
-        search_asset(year, month, day, EOS_ASSET_ID)
+        asset_keys = list(Asset_group.keys())
+        k = 0
+        for i in asset_keys:
+            print("%d: %s"%(k, i))
+            k += 1
+        asset_index = int(input("your asset index:"))
+        key = asset_keys[asset_index]
+        asset_id = Asset_group[key]
+        search_asset_between(year, month, day, first_day, asset_id)
+
+    if(selection == "7"):
+        first_day = datetime.datetime(2019, 5, 28, 0, 0, tzinfo=datetime.timezone.utc)
+        year = int(input("year:"))
+        month = int(input("month:"))
+        day = int(input("day"))
+        search_asset_between(year, month, day, first_day, EOS_ASSET_ID)
     if(selection == "8"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
         year = int(input("year:"))
