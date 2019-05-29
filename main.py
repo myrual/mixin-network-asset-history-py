@@ -46,8 +46,8 @@ class ScannedSnapshots(Base):
                                   self.created_at)
 
 
-class SnapshotsV2(Base):
-    __tablename__ = 'snapshot_v2'
+class TradingSnapshots(Base):
+    __tablename__ = 'trading_snapshot'
     # Here we define columns for the table person
     # Notice that each column is also a normal Python instance attribute.
     id = Column(Integer, primary_key=True)
@@ -57,7 +57,7 @@ class SnapshotsV2(Base):
     asset_id  = Column(String(250))
     snapshot_id = Column(String(64), unique=True)
     def __repr__(self):
-        return "<SnapshotsV2 (snapshot id = '%s' source='%s', asset name ='%s', asset id ='%s', created at ='%s', amount ='%f')>" % (
+        return "<trading_snapshot (snapshot id = '%s' source='%s', asset name ='%s', asset id ='%s', created at ='%s', amount ='%f')>" % (
                                   self.snapshot_id, self.source, self.asset_id, str(self.created_at), self.amount)
 
 
@@ -97,15 +97,20 @@ def find_deposit_withdraw(init_time):
                     amount = float(eachSnap["amount"])
                     created_at = iso8601.parse_date(eachSnap["created_at"])
                     source = eachSnap["source"]
-                    if source != "WITHDRAWAL_INITIALIZED" and source != "DEPOSIT_CONFIRMED":
-                        continue
-                    snapshot_id = eachSnap["snapshot_id"]
-                    asset_id = eachSnap["asset"]["asset_id"]
-                    asset_key = eachSnap["asset"]["asset_key"]
-                    asset_chain_id = eachSnap["asset"]["chain_id"]
-                    name = eachSnap["asset"]["name"]
-                    obj = {"snapshot_id":snapshot_id, "created_at":created_at, "amount":amount, "source":source, "asset_id": asset_id, "asset_key": asset_key, "asset_chain_id": asset_chain_id, "name": name}
-                    found_result.append(obj)
+                    if source == "WITHDRAWAL_INITIALIZED" and source == "DEPOSIT_CONFIRMED":
+                        snapshot_id = eachSnap["snapshot_id"]
+                        asset_id = eachSnap["asset"]["asset_id"]
+                        asset_key = eachSnap["asset"]["asset_key"]
+                        asset_chain_id = eachSnap["asset"]["chain_id"]
+                        name = eachSnap["asset"]["name"]
+                        obj = {"snapshot_id":snapshot_id, "created_at":created_at, "amount":amount, "source":source, "asset_id": asset_id, "asset_key": asset_key, "asset_chain_id": asset_chain_id, "name": name}
+                        found_result.append(obj)
+                    if source == "TRANSFER_INITIALIZED":
+                        snapshot_id = eachSnap["snapshot_id"]
+                        asset_id = eachSnap["asset"]["asset_id"]
+                        if asset_id in Important_Asset:
+                            obj = {"snapshot_id":snapshot_id, "created_at":created_at, "amount":amount, "source":source, "asset_id": asset_id}
+                            found_result.append(obj)
                 result = {"found_records":found_result, "lastsnap_created_at":lastsnap["created_at"]}
                 return result
             return None
@@ -262,17 +267,26 @@ while True:
             result = tasks.get()
             found_records = result[0]
             for eachRecord  in found_records:
-                if session.query(NonInternalSnapshots).filter(NonInternalSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
-                    this                = NonInternalSnapshots()
-                    this.snapshot_id    = eachRecord["snapshot_id"]
-                    this.amount         = eachRecord["amount"]
-                    this.created_at     = eachRecord["created_at"]
-                    this.source         = eachRecord["source"]
-                    this.asset_id       = eachRecord["asset_id"]
-                    this.asset_key      = eachRecord["asset_key"]
-                    this.asset_chain_id = eachRecord["asset_chain_id"]
-                    this.asset_name     = eachRecord["name"]
-                    session.add(this)
+                if eachRecord["source"] == "WITHDRAWAL_INITIALIZED" or eachRecord["source"] == "DEPOSIT_CONFIRMED":
+                    if session.query(NonInternalSnapshots).filter(NonInternalSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
+                        this                = NonInternalSnapshots()
+                        this.snapshot_id    = eachRecord["snapshot_id"]
+                        this.amount         = eachRecord["amount"]
+                        this.created_at     = eachRecord["created_at"]
+                        this.source         = eachRecord["source"]
+                        this.asset_id       = eachRecord["asset_id"]
+                        this.asset_key      = eachRecord["asset_key"]
+                        this.asset_chain_id = eachRecord["asset_chain_id"]
+                        this.asset_name     = eachRecord["name"]
+                        session.add(this)
+                if (eachRecord["source"] == "TRANSFER_INITIALIZED") and (eachRecord["asset_id"] in Important_Asset):
+                    if session.query(TradingSnapshots).filter(TradingSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
+                        this                = TradingSnapshots()
+                        this.snapshot_id    = eachRecord["snapshot_id"]
+                        this.amount         = eachRecord["amount"]
+                        this.created_at     = eachRecord["created_at"]
+                        this.source         = eachRecord["source"]
+                        session.add(this)
             session.commit()
             last_record = result[1]
             print(last_record)
