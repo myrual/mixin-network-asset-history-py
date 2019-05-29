@@ -191,10 +191,7 @@ def search_asset_between(year, month, day, first_day,asset_id):
 while True:
     print("load snap: 1")
     print("show everyday asset: 2")
-    print("load btc token: 3")
-    print("load all token: 4")
-    print("load EOS token: 7")
-    print("load USDT token: 8")
+    print("load btc trading record: 3")
 
     selection = input("your selection:")
     if(selection == "1"):
@@ -287,13 +284,8 @@ while True:
                 csvwriter.writerow([datetime.date(this_day.year, this_day.month, this_day.day),int(old)])
                 x.add_row([datetime.date(this_day.year, this_day.month, this_day.day), int(old)])
         print(x)
-    if(selection == "10"):
-        start_year = int(input("start year:"))
-        start_month = int(input("start month:"))
-        start_day = int(input("start day:"))
-
-
-        first_day = datetime.datetime(start_year, start_month, start_day, 0, 0, tzinfo=datetime.timezone.utc)
+    if(selection == "3"):
+        first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
         year = int(input("year:"))
         month = int(input("month:"))
         day = int(input("day"))
@@ -305,72 +297,12 @@ while True:
         asset_index = int(input("your asset index:"))
         key = asset_keys[asset_index]
         asset_id = Asset_group[key]
-        search_asset_between(year, month, day, first_day, asset_id)
-
-    if(selection == "7"):
-        first_day = datetime.datetime(2019, 5, 28, 0, 0, tzinfo=datetime.timezone.utc)
-        year = int(input("year:"))
-        month = int(input("month:"))
-        day = int(input("day"))
-        search_asset_between(year, month, day, first_day, EOS_ASSET_ID)
-    if(selection == "8"):
-        first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
-        year = int(input("year:"))
-        month = int(input("month:"))
-        day = int(input("day"))
-        search_asset(year, month, day, USDT_ASSET_ID)
-
-
-
-    if(selection == "3"):
-        first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
-        year = int(input("year:"))
-        month = int(input("month:"))
-        day = int(input("day"))
         today = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
         diff = (today - first_day).days
         daily_btc_balance = []
-        with open("btc_"+str(year) +"_"+ str(month) +"_"+ str(day)+".csv", 'a', newline='') as csvfile:
-            csvwriter = csv.writer(csvfile)
-            for i in range(diff):
-                this_day = first_day + datetime.timedelta(days = i)
-                found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == BTC_ASSET_ID).all()
-                old = 0
-                for each_record in found_records:
-                    old += each_record.amount
-
-                print("%s %d"%(datetime.date(this_day.year, this_day.month, this_day.day), old))
-
-                csvwriter.writerow([datetime.date(this_day.year, this_day.month, this_day.day),old])
-    if(selection == "5"):
-        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.asset_id == BTC_ASSET_ID).all()
+        x = PrettyTable()
+        x.field_names = ["date", "accumulated amount"]
+        now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == asset_id).all()
         for each_record in found_records:
-            print(each_record.created_at, each_record.source, each_record.amount)
-    if(selection == "6"):
-        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.asset_id == XIN_ASSET_ID).all()
-        for each_record in found_records:
-            print(each_record.created_at, each_record.source, each_record.amount)
-
-
-    if(selection == "4"):
-        year = int(input("year:"))
-        month = int(input("month:"))
-        day = int(input("day:"))
-        target = datetime.datetime(year, month, day,0,0, tzinfo=datetime.timezone.utc)
-        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < target).all()
-        total_result = {}
-        for each_record in found_records:
-            if each_record.asset_id in total_result:
-                old = total_result[each_record.asset_id]
-                old += each_record.amount
-                total_result[each_record.asset_id] = old
-            else:
-                total_result[each_record.asset_id] = each_record.amount
-
-        all_asset_ids = total_result.keys()
-        all_asset_amount_spawn = []
-        for each_id in all_asset_ids:
-
-            amount_string = str(int(total_result[each_id])).ljust(15)
-            all_asset_amount_spawn.append(gevent.spawn(output_asset_with_amount, each_id, amount_string))
-        gevent.joinall(all_asset_amount_spawn)
+            print(each_record)
