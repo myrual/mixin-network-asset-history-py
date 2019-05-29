@@ -57,7 +57,7 @@ class TradingSnapshots(Base):
     asset_id  = Column(String(250))
     snapshot_id = Column(String(64), unique=True)
     def __repr__(self):
-        return "<trading_snapshot (snapshot id = '%s' source='%s', asset name ='%s', asset id ='%s', created at ='%s', amount ='%f')>" % (
+        return "<trading_snapshot (snapshot id = '%s' source='%s', asset id ='%s', created at ='%s', amount ='%f')>" % (
                                   self.snapshot_id, self.source, self.asset_id, str(self.created_at), self.amount)
 
 
@@ -248,6 +248,7 @@ while True:
                         this.amount         = eachRecord["amount"]
                         this.created_at     = eachRecord["created_at"]
                         this.source         = eachRecord["source"]
+                        this.asset_id       = eachRecord["asset_id"]
                         session.add(this)
             session.commit()
             last_record = result[1]
@@ -285,24 +286,9 @@ while True:
                 x.add_row([datetime.date(this_day.year, this_day.month, this_day.day), int(old)])
         print(x)
     if(selection == "3"):
-        first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
-        year = int(input("year:"))
-        month = int(input("month:"))
-        day = int(input("day"))
-        asset_keys = list(Asset_group.keys())
-        k = 0
-        for i in asset_keys:
-            print("%d: %s"%(k, i))
-            k += 1
-        asset_index = int(input("your asset index:"))
-        key = asset_keys[asset_index]
-        asset_id = Asset_group[key]
-        today = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
-        diff = (today - first_day).days
-        daily_btc_balance = []
-        x = PrettyTable()
-        x.field_names = ["date", "accumulated amount"]
-        now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-        found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == asset_id).all()
+        found_records = session.query(TradingSnapshots).all()
         for each_record in found_records:
             print(each_record)
+            if each_record.asset_id == None:
+                session.delete(each_record)
+        session.commit()
