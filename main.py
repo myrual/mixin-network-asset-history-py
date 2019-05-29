@@ -154,41 +154,6 @@ def loadSnapOnDateTime(start_time, end_time):
     tasks.put((total_result, last_snap_string, (start_time, end_time)))
     return
 
-def loadSnap():
-    while True:
-        last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
-        if last_record_in_database != None:
-            program_start = last_record_in_database.created_at
-        else:
-            program_start = mixin_init_time
-        find_result = find_deposit_withdraw(program_start)
-        if find_result != None:
-            if len(find_result["found_records"]) != 0:
-                for eachResult in find_result["found_records"]:
-                    thisRecord = NonInternalSnapshots()
-                    thisRecord.created_at = eachResult["created_at"]
-                    thisRecord.amount = eachResult["amount"]
-                    thisRecord.source = eachResult["source"]
-                    thisRecord.asset_name = eachResult["name"]
-                    thisRecord.asset_key = eachResult["asset_key"]
-                    thisRecord.asset_id = eachResult["asset_id"]
-                    thisRecord.asset_chain_id = eachResult["asset_chain_id"]
-                    thisRecord.snapshot_id = eachResult["snapshot_id"]
-                    session.add(thisRecord)
-
-            init_time = find_result["lastsnap_created_at"]
-            last_record_in_database = session.query(ScannedSnapshots).order_by(ScannedSnapshots.id.desc()).first()
-            print(init_time)
-            if last_record_in_database != None:
-                last_record_in_database.created_at = init_time
-            else:
-                the_last_record = ScannedSnapshots()
-                the_last_record.created_at = init_time
-                session.add(the_last_record)
-            session.commit()
-        else:
-            break
-
 def output_asset_with_amount(each_id, amount_string):
     each_asset_info = requests.get("https://api.mixin.one/network/assets/"+each_id).json()
     if "data" in each_asset_info:
