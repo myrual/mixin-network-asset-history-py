@@ -29,7 +29,8 @@ ZEC_ASSET_ID    = "c996abc9-d94e-4494-b1cf-2a3fd3ac5714"
 BCH_ASSET_ID    = "fd11b6e3-0b87-41f1-a41f-f0e9b49e5bf0"
 XIN_ASSET_ID    = "c94ac88f-4671-3976-b60a-09064f1811e8"
 
-Asset_group = {"BTC":BTC_ASSET_ID, "EOS":EOS_ASSET_ID, "USDT":USDT_ASSET_ID, "XIN":XIN_ASSET_ID, "LTC":LTC_ASSET_ID, "ZEC":ZEC_ASSET_ID}
+Asset_group = {"BTC":BTC_ASSET_ID, "ETH":ETH_ASSET_ID, "EOS":EOS_ASSET_ID, "USDT":USDT_ASSET_ID, "XIN":XIN_ASSET_ID, "LTC":LTC_ASSET_ID, "ZEC":ZEC_ASSET_ID}
+Important_Asset = [BTC_ASSET_ID, ETH_ASSET_ID, LTC_ASSET_ID, USDT_ASSET_ID, XIN_ASSET_ID, DOGE_ASSET_ID, ZEC_ASSET_ID]
 
 
 
@@ -43,6 +44,21 @@ class ScannedSnapshots(Base):
     def __repr__(self):
         return "<ScannedSnapshots (created_at = '%s')>" % (
                                   self.created_at)
+
+
+class SnapshotsV2(Base):
+    __tablename__ = 'snapshot_v2'
+    # Here we define columns for the table person
+    # Notice that each column is also a normal Python instance attribute.
+    id = Column(Integer, primary_key=True)
+    amount = Column(Float(precision = 8))
+    source = Column(String(100))
+    created_at = Column(DateTime)
+    asset_id  = Column(String(250))
+    snapshot_id = Column(String(64), unique=True)
+    def __repr__(self):
+        return "<SnapshotsV2 (snapshot id = '%s' source='%s', asset name ='%s', asset id ='%s', created at ='%s', amount ='%f')>" % (
+                                  self.snapshot_id, self.source, self.asset_id, str(self.created_at), self.amount)
 
 
 class NonInternalSnapshots(Base):
