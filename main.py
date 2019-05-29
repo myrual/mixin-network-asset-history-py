@@ -286,9 +286,41 @@ while True:
                 x.add_row([datetime.date(this_day.year, this_day.month, this_day.day), int(old)])
         print(x)
     if(selection == "3"):
-        found_records = session.query(TradingSnapshots).all()
-        for each_record in found_records:
-            print(each_record)
-            if each_record.asset_id == None:
-                session.delete(each_record)
-        session.commit()
+        year = int(input("start year:"))
+        month = int(input("start month:"))
+        day = int(input("start day"))
+        end_year = int(input("end year:"))
+        end_month = int(input("end month:"))
+        end_day = int(input("end day"))
+        end_of_time = datetime.datetime(end_year, end_month, end_day, 0, 0, tzinfo=datetime.timezone.utc)
+
+        asset_keys = list(Asset_group.keys())
+        k = 0
+        for i in asset_keys:
+            print("%d: %s"%(k, i))
+            k += 1
+        asset_index = int(input("your asset index:"))
+        key = asset_keys[asset_index]
+        asset_id = Asset_group[key]
+
+ 
+        start_of_day = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
+        now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        x = PrettyTable()
+        x.field_names = ["date", "transaction", "total amount"]
+
+        with open(key+"daily_transactions_"+str(year) +"_"+ str(month) +"_"+ str(day)+str(end_year) +"_"+ str(end_month) +"_"+ str(end_day)+"created_at" + now+".csv", 'a', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+
+            while start_of_day < end_of_time:
+                end_of_day = start_of_day + datetime.timedelta(days = 1)
+                found_records = session.query(TradingSnapshots).filter(TradingSnapshots.created_at > start_of_day).filter(TradingSnapshots.created_at < end_of_day).filter(TradingSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
+                totalAmount = 0
+                for each_record in found_records:
+                    totalAmount += each_record.amount
+                print(start_of_day, len(found_records), totalAmount)
+                csvwriter.writerow([datetime.date(start_of_day.year, start_of_day.month, start_of_day.day),found_records, totalAmount])
+                x.add_row([datetime.date(start_of_day.year, start_of_day.month, start_of_day.day),len(found_records), totalAmount])
+
+                start_of_day += datetime.timedelta(days = 1)
+        print(x)
