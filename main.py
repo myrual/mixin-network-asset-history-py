@@ -324,3 +324,28 @@ while True:
 
                 start_of_day += datetime.timedelta(days = 1)
         print(x)
+    if(selection == "4"):
+        year = int(input("start year:"))
+        month = int(input("start month:"))
+        day = int(input("start day"))
+        end_year = int(input("end year:"))
+        end_month = int(input("end month:"))
+        end_day = int(input("end day"))
+        end_of_time = datetime.datetime(end_year, end_month, end_day, 0, 0, tzinfo=datetime.timezone.utc)
+
+        asset_keys = list(Asset_group.keys())
+        k = 0
+        for i in asset_keys:
+            print("%d: %s"%(k, i))
+            k += 1
+        asset_index = int(input("your asset index:"))
+        key = asset_keys[asset_index]
+        asset_id = Asset_group[key]
+
+ 
+        start_of_day = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
+        now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+
+        found_records = session.query(TradingSnapshots).filter(TradingSnapshots.created_at > start_of_day).filter(TradingSnapshots.created_at < end_of_time).filter(TradingSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
+        for each_record in found_records:
+            print(each_record)
