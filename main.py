@@ -9,6 +9,7 @@ import threading
 import requests
 import datetime
 import csv
+import sys
 import iso8601
 import sqlalchemy
 from sqlalchemy import Column, Integer, String, Float, DateTime
@@ -190,7 +191,63 @@ def search_asset_between(year, month, day, first_day,asset_id):
         print(each_record)
 
 
-while True:
+def searchAllSnap(year, month, days, offset_days):
+    allspawn = []
+    group = Pool(20)
+    start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
+    end = ""
+    for i in range(offset_days):
+        minutes_interval = 5
+        times = 24 * 60/minutes_interval
+        this_start = start + datetime.timedelta(days = i)
+        end = this_start + datetime.timedelta(minutes = minutes_interval)
+        d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+        group.start(d)
+        print(this_start, end)
+        allspawn.append(d)
+
+        #replicate the operation 
+        for i in range(int(times) - 1):
+            this_start = end
+            end = this_start + datetime.timedelta(minutes = minutes_interval)
+
+            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            group.start(d)
+            allspawn.append(d)
+        print(end)
+
+
+
+    for i in range(len(allspawn)):
+        result = tasks.get()
+        found_records = result[0]
+        for eachRecord  in found_records:
+            if eachRecord["source"] == "WITHDRAWAL_INITIALIZED" or eachRecord["source"] == "DEPOSIT_CONFIRMED":
+                if session.query(NonInternalSnapshots).filter(NonInternalSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
+                    this                = NonInternalSnapshots()
+                    this.snapshot_id    = eachRecord["snapshot_id"]
+                    this.amount         = eachRecord["amount"]
+                    this.created_at     = eachRecord["created_at"]
+                    this.source         = eachRecord["source"]
+                    this.asset_id       = eachRecord["asset_id"]
+                    this.asset_key      = eachRecord["asset_key"]
+                    this.asset_chain_id = eachRecord["asset_chain_id"]
+                    this.asset_name     = eachRecord["name"]
+                    session.add(this)
+            if (eachRecord["source"] == "TRANSFER_INITIALIZED") and (eachRecord["asset_id"] in Important_Asset):
+                if session.query(TradingSnapshots).filter(TradingSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
+                    this                = TradingSnapshots()
+                    this.snapshot_id    = eachRecord["snapshot_id"]
+                    this.amount         = eachRecord["amount"]
+                    this.created_at     = eachRecord["created_at"]
+                    this.source         = eachRecord["source"]
+                    this.asset_id       = eachRecord["asset_id"]
+                    session.add(this)
+        session.commit()
+        last_record = result[1]
+    print(end)
+
+def interactive_():
     print("load snap: 1")
     print("show everyday asset: 2")
     print("load btc trading record: 3")
@@ -202,60 +259,7 @@ while True:
         day = input("day:")
         offset_days = int(input("offset days"))
 
-        allspawn = []
-        group = Pool(40)
-        start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
-        end = ""
-        for i in range(offset_days):
-            minutes_interval = 5
-            times = 24 * 60/minutes_interval
-            this_start = start + datetime.timedelta(days = i)
-            end = this_start + datetime.timedelta(minutes = minutes_interval)
-            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-            group.start(d)
-            print(this_start, end)
-            allspawn.append(d)
-
-            #replicate the operation 
-            for i in range(int(times) - 1):
-                this_start = end
-                end = this_start + datetime.timedelta(minutes = minutes_interval)
-
-                d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-                group.start(d)
-                allspawn.append(d)
-            print(end)
-
-
-
-        for i in range(len(allspawn)):
-            result = tasks.get()
-            found_records = result[0]
-            for eachRecord  in found_records:
-                if eachRecord["source"] == "WITHDRAWAL_INITIALIZED" or eachRecord["source"] == "DEPOSIT_CONFIRMED":
-                    if session.query(NonInternalSnapshots).filter(NonInternalSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
-                        this                = NonInternalSnapshots()
-                        this.snapshot_id    = eachRecord["snapshot_id"]
-                        this.amount         = eachRecord["amount"]
-                        this.created_at     = eachRecord["created_at"]
-                        this.source         = eachRecord["source"]
-                        this.asset_id       = eachRecord["asset_id"]
-                        this.asset_key      = eachRecord["asset_key"]
-                        this.asset_chain_id = eachRecord["asset_chain_id"]
-                        this.asset_name     = eachRecord["name"]
-                        session.add(this)
-                if (eachRecord["source"] == "TRANSFER_INITIALIZED") and (eachRecord["asset_id"] in Important_Asset):
-                    if session.query(TradingSnapshots).filter(TradingSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
-                        this                = TradingSnapshots()
-                        this.snapshot_id    = eachRecord["snapshot_id"]
-                        this.amount         = eachRecord["amount"]
-                        this.created_at     = eachRecord["created_at"]
-                        this.source         = eachRecord["source"]
-                        this.asset_id       = eachRecord["asset_id"]
-                        session.add(this)
-            session.commit()
-            last_record = result[1]
-        print(end)
+        searchAllSnap(year, month, days, offset)
     if(selection == "2"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
         year = int(input("year:"))
@@ -349,3 +353,20 @@ while True:
         found_records = session.query(TradingSnapshots).filter(TradingSnapshots.created_at > start_of_day).filter(TradingSnapshots.created_at < end_of_time).filter(TradingSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
         for each_record in found_records:
             print(each_record)
+if __name__ == "__main__":
+    print(sys.argv)
+    if len(sys.argv) >= 5:
+        year = int(sys.argv[1])
+        month = int(sys.argv[2])
+        day   = int(sys.argv[3])
+        offset = int(sys.argv[4])
+        print("%d %d %d %d"%(year, month, day, offset))
+        searchAllSnap(year, month, day, offset)
+    else:
+        while True:
+            interactive_()
+    
+
+
+
+
