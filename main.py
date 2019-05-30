@@ -1,6 +1,8 @@
 import gevent
 from gevent.queue import Queue
 from gevent import monkey
+from gevent import getcurrent
+from gevent.pool import Group, Pool
 monkey.patch_all()
 
 import threading
@@ -201,6 +203,7 @@ while True:
         offset_days = int(input("offset days"))
 
         allspawn = []
+        group = Pool(20)
         start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
         end = ""
         for i in range(offset_days):
@@ -209,6 +212,7 @@ while True:
             this_start = start + datetime.timedelta(days = i)
             end = this_start + datetime.timedelta(minutes = minutes_interval)
             d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            group.start(d)
             print(this_start, end)
             allspawn.append(d)
 
@@ -218,7 +222,7 @@ while True:
                 end = this_start + datetime.timedelta(minutes = minutes_interval)
 
                 d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-                d.start()
+                group.start(d)
                 allspawn.append(d)
             print(end)
 
