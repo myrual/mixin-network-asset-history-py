@@ -218,11 +218,12 @@ while True:
                 end = this_start + datetime.timedelta(minutes = minutes_interval)
 
                 d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+                d.start()
+                d.join()
                 allspawn.append(d)
             print(end)
 
 
-        gevent.joinall(allspawn)
 
         for i in range(len(allspawn)):
             result = tasks.get()
