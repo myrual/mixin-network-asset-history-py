@@ -197,7 +197,7 @@ def searchAllSnap(year, month, days, offset_days):
     start = datetime.datetime(int(year), int(month),int(days), 0, 0, tzinfo=datetime.timezone.utc)
     end = ""
     for i in range(offset_days):
-        minutes_interval = 5
+        minutes_interval = 60
         times = 24 * 60/minutes_interval
         this_start = start + datetime.timedelta(days = i)
         end = this_start + datetime.timedelta(minutes = minutes_interval)
