@@ -100,7 +100,7 @@ def find_deposit_withdraw(init_time):
                     amount = float(eachSnap["amount"])
                     created_at = iso8601.parse_date(eachSnap["created_at"])
                     source = eachSnap["source"]
-                    if source == "WITHDRAWAL_INITIALIZED" and source == "DEPOSIT_CONFIRMED":
+                    if source == "WITHDRAWAL_INITIALIZED" or source == "DEPOSIT_CONFIRMED":
                         snapshot_id = eachSnap["snapshot_id"]
                         asset_id = eachSnap["asset"]["asset_id"]
                         asset_key = eachSnap["asset"]["asset_key"]
@@ -194,7 +194,7 @@ def search_asset_between(year, month, day, first_day,asset_id):
 def searchAllSnap(year, month, days, offset_days):
     allspawn = []
     group = Pool(20)
-    start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
+    start = datetime.datetime(int(year), int(month),int(days), 0, 0, tzinfo=datetime.timezone.utc)
     end = ""
     for i in range(offset_days):
         minutes_interval = 5
@@ -259,7 +259,7 @@ def interactive_():
         day = input("day:")
         offset_days = int(input("offset days"))
 
-        searchAllSnap(year, month, days, offset)
+        searchAllSnap(year, month, day, offset_days)
     if(selection == "2"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
         year = int(input("year:"))
@@ -349,10 +349,16 @@ def interactive_():
  
         start_of_day = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
         now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        input_selection = input("deposit and withdraw:1\n trading : 2\n:")
+        if input_selection == "2":
 
-        found_records = session.query(TradingSnapshots).filter(TradingSnapshots.created_at > start_of_day).filter(TradingSnapshots.created_at < end_of_time).filter(TradingSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
-        for each_record in found_records:
-            print(each_record)
+            found_records = session.query(TradingSnapshots).filter(TradingSnapshots.created_at > start_of_day).filter(TradingSnapshots.created_at < end_of_time).filter(TradingSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
+            for each_record in found_records:
+                print(each_record)
+        if input_selection == "1":
+            found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at > start_of_day).filter(NonInternalSnapshots.created_at < end_of_time).filter(NonInternalSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
+            for each_record in found_records:
+                print(each_record)
 if __name__ == "__main__":
     print(sys.argv)
     if len(sys.argv) >= 5:
