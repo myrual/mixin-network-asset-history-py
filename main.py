@@ -216,7 +216,6 @@ while True:
             for i in range(int(times) - 1):
                 this_start = end
                 end = this_start + datetime.timedelta(minutes = minutes_interval)
-                print(this_start, end)
 
                 d = gevent.spawn(loadSnapOnDateTime, this_start, end)
                 allspawn.append(d)
@@ -252,8 +251,6 @@ while True:
                         session.add(this)
             session.commit()
             last_record = result[1]
-            print(last_record)
-            print(result[2])
         print(end)
     if(selection == "2"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
