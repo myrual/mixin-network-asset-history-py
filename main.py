@@ -55,10 +55,10 @@ class TradingSnapshots(Base):
     # Notice that each column is also a normal Python instance attribute.
     id = Column(Integer, primary_key=True)
     amount = Column(Float(precision = 8))
-    source = Column(String(100))
+    source = Column(String(100), index = True)
     created_at = Column(DateTime)
-    asset_id  = Column(String(250))
-    snapshot_id = Column(String(64), unique=True)
+    asset_id  = Column(String(250), index = True)
+    snapshot_id = Column(String(64), unique=True, index = True)
     def __repr__(self):
         return "<trading_snapshot (snapshot id = '%s' source='%s', asset id ='%s', created at ='%s', amount ='%f')>" % (
                                   self.snapshot_id, self.source, self.asset_id, str(self.created_at), self.amount)
@@ -70,13 +70,13 @@ class NonInternalSnapshots(Base):
     # Notice that each column is also a normal Python instance attribute.
     id = Column(Integer, primary_key=True)
     amount = Column(Float(precision = 8))
-    source = Column(String(100))
+    source = Column(String(100), index = True)
     created_at = Column(DateTime)
     asset_name = Column(String(250))
     asset_key = Column(String(250))
-    asset_id  = Column(String(250))
+    asset_id  = Column(String(250), index = True)
     asset_chainid  = Column(String(250))
-    snapshot_id = Column(String(64), unique=True)
+    snapshot_id = Column(String(64), unique=True, index = True)
     def __repr__(self):
         return "<NonInternalSnapshots (snapshot id = '%s' source='%s', asset name ='%s', asset id ='%s', created at ='%s', amount ='%f')>" % (
                                   self.snapshot_id, self.source, self.asset_name, self.asset_id, str(self.created_at), self.amount)
