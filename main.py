@@ -203,11 +203,11 @@ while True:
         offset_days = int(input("offset days"))
 
         allspawn = []
-        group = Pool(20)
+        group = Pool(40)
         start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
         end = ""
         for i in range(offset_days):
-            minutes_interval = 10
+            minutes_interval = 5
             times = 24 * 60/minutes_interval
             this_start = start + datetime.timedelta(days = i)
             end = this_start + datetime.timedelta(minutes = minutes_interval)
