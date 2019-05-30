@@ -219,7 +219,6 @@ while True:
 
                 d = gevent.spawn(loadSnapOnDateTime, this_start, end)
                 d.start()
-                d.join()
                 allspawn.append(d)
             print(end)
 
