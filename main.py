@@ -204,7 +204,7 @@ while True:
         start = datetime.datetime(int(year), int(month),int(day), 0, 0, tzinfo=datetime.timezone.utc)
         end = ""
         for i in range(offset_days):
-            minutes_interval = 20
+            minutes_interval = 10
             times = 24 * 60/minutes_interval
             this_start = start + datetime.timedelta(days = i)
             end = this_start + datetime.timedelta(minutes = minutes_interval)
@@ -315,7 +315,6 @@ while True:
                 totalAmount = 0
                 for each_record in found_records:
                     totalAmount += each_record.amount
-                print(start_of_day, len(found_records), totalAmount)
                 csvwriter.writerow([datetime.date(start_of_day.year, start_of_day.month, start_of_day.day),found_records, totalAmount])
                 x.add_row([datetime.date(start_of_day.year, start_of_day.month, start_of_day.day),len(found_records), totalAmount])
 
