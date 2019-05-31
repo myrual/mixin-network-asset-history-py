@@ -197,7 +197,6 @@ def searchAllSnap(year, month, days, offset_days, minutes_interval):
     start = datetime.datetime(int(year), int(month),int(days), 0, 0, tzinfo=datetime.timezone.utc)
     end = ""
     for i in range(offset_days):
-        minutes_interval = 60
         times = 24 * 60/minutes_interval
         this_start = start + datetime.timedelta(days = i)
         end = this_start + datetime.timedelta(minutes = minutes_interval)
@@ -218,6 +217,7 @@ def searchAllSnap(year, month, days, offset_days, minutes_interval):
 
 
 
+    print("%d greenlets: "%len(allspawn))
     for i in range(len(allspawn)):
         result = tasks.get()
         found_records = result[0]
@@ -258,7 +258,7 @@ def interactive_():
         month = input("month:")
         day = input("day:")
         offset_days = int(input("offset days:"))
-        minutes_inter = input(input("minutes interval:"))
+        minutes_inter = int(input("minutes interval:"))
 
         searchAllSnap(year, month, day, offset_days, minutes_inter)
     if(selection == "2"):
