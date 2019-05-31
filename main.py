@@ -191,9 +191,9 @@ def search_asset_between(year, month, day, first_day,asset_id):
         print(each_record)
 
 
-def searchAllSnap(year, month, days, offset_days):
+def searchAllSnap(year, month, days, offset_days, minutes_interval):
     allspawn = []
-    group = Pool(20)
+    group = Pool()
     start = datetime.datetime(int(year), int(month),int(days), 0, 0, tzinfo=datetime.timezone.utc)
     end = ""
     for i in range(offset_days):
@@ -257,9 +257,10 @@ def interactive_():
         year = input("year:")
         month = input("month:")
         day = input("day:")
-        offset_days = int(input("offset days"))
+        offset_days = int(input("offset days:"))
+        minutes_inter = input(input("minutes interval:"))
 
-        searchAllSnap(year, month, day, offset_days)
+        searchAllSnap(year, month, day, offset_days, minutes_inter)
     if(selection == "2"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
         year = int(input("year:"))
@@ -361,13 +362,14 @@ def interactive_():
                 print(each_record)
 if __name__ == "__main__":
     print(sys.argv)
-    if len(sys.argv) >= 5:
+    if len(sys.argv) >= 6:
         year = int(sys.argv[1])
         month = int(sys.argv[2])
         day   = int(sys.argv[3])
         offset = int(sys.argv[4])
-        print("%d %d %d %d"%(year, month, day, offset))
-        searchAllSnap(year, month, day, offset)
+        interval = int(sys.argv[5])
+        print("%d %d %d %d"%(year, month, day, offset, interval))
+        searchAllSnap(year, month, day, offset, interval)
     else:
         while True:
             interactive_()
