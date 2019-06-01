@@ -191,34 +191,8 @@ def search_asset_between(year, month, day, first_day,asset_id):
         print(each_record)
 
 
-def searchAllSnap(year, month, days, offset_days, minutes_interval):
-    allspawn = []
-    group = Pool()
-    start = datetime.datetime(int(year), int(month),int(days), 0, 0, tzinfo=datetime.timezone.utc)
-    end = ""
-    for i in range(offset_days):
-        times = 24 * 60/minutes_interval
-        this_start = start + datetime.timedelta(days = i)
-        end = this_start + datetime.timedelta(minutes = minutes_interval)
-        d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-        group.start(d)
-        print(this_start, end)
-        allspawn.append(d)
-
-        #replicate the operation 
-        for i in range(int(times) - 1):
-            this_start = end
-            end = this_start + datetime.timedelta(minutes = minutes_interval)
-
-            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
-            group.start(d)
-            allspawn.append(d)
-        print(end)
-
-
-
-    print("%d greenlets: "%len(allspawn))
-    for i in range(len(allspawn)):
+def receive_task(total_number):
+    for i in range(total_number):
         result = tasks.get()
         found_records = result[0]
         for eachRecord  in found_records:
@@ -245,6 +219,36 @@ def searchAllSnap(year, month, days, offset_days, minutes_interval):
                     session.add(this)
         session.commit()
         last_record = result[1]
+
+def searchAllSnap(year, month, days, offset_days, minutes_interval):
+    allspawn = []
+    group = Pool(20)
+    start = datetime.datetime(int(year), int(month),int(days), 0, 0, tzinfo=datetime.timezone.utc)
+    end = ""
+    for i in range(offset_days):
+        times = 24 * 60/minutes_interval
+        this_start = start + datetime.timedelta(days = i)
+        end = this_start + datetime.timedelta(minutes = minutes_interval)
+        d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+        print(this_start, end)
+        allspawn.append(d)
+
+        #replicate the operation 
+        for i in range(int(times) - 1):
+            this_start = end
+            end = this_start + datetime.timedelta(minutes = minutes_interval)
+
+            d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+            allspawn.append(d)
+        print(end)
+
+    receive_spawn = gevent.spawn(receive_task, len(allspawn))
+    receive_spawn.start()
+
+    print("%d greenlets: "%len(allspawn))
+    for each_spawn in allspawn:
+        group.start(each_spawn)
+
     print(end)
 
 def interactive_():
