@@ -237,6 +237,7 @@ def searchAllSnap(year, month, days, offset_days, minutes_interval):
         for i in range(int(times) - 1):
             this_start = end
             end = this_start + datetime.timedelta(minutes = minutes_interval)
+            print(this_start, end)
 
             d = gevent.spawn(loadSnapOnDateTime, this_start, end)
             allspawn.append(d)
