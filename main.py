@@ -373,7 +373,7 @@ if __name__ == "__main__":
         day   = int(sys.argv[3])
         offset = int(sys.argv[4])
         interval = int(sys.argv[5])
-        print("%d %d %d %d"%(year, month, day, offset, interval))
+        print("%d %d %d %d %d"%(year, month, day, offset, interval))
         searchAllSnap(year, month, day, offset, interval)
     else:
         while True:
