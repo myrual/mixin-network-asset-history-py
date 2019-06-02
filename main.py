@@ -132,6 +132,55 @@ DBSession = sqlalchemy.orm.sessionmaker(bind=engine)
 session = DBSession()
 
 tasks = Queue()
+def save_to_disk(found_records, dbsession):
+    for eachRecord  in found_records:
+        if eachRecord["source"] == "WITHDRAWAL_INITIALIZED" or eachRecord["source"] == "DEPOSIT_CONFIRMED":
+            if dbsession.query(NonInternalSnapshots).filter(NonInternalSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
+                this                = NonInternalSnapshots()
+                this.snapshot_id    = eachRecord["snapshot_id"]
+                this.amount         = eachRecord["amount"]
+                this.created_at     = eachRecord["created_at"]
+                this.source         = eachRecord["source"]
+                this.asset_id       = eachRecord["asset_id"]
+                this.asset_key      = eachRecord["asset_key"]
+                this.asset_chain_id = eachRecord["asset_chain_id"]
+                this.asset_name     = eachRecord["name"]
+                dbsession.add(this)
+        if (eachRecord["source"] == "TRANSFER_INITIALIZED") and (eachRecord["asset_id"] in Important_Asset):
+            if dbsession.query(TradingSnapshots).filter(TradingSnapshots.snapshot_id == eachRecord["snapshot_id"]).first() == None:
+                this                = TradingSnapshots()
+                this.snapshot_id    = eachRecord["snapshot_id"]
+                this.amount         = eachRecord["amount"]
+                this.created_at     = eachRecord["created_at"]
+                this.source         = eachRecord["source"]
+                this.asset_id       = eachRecord["asset_id"]
+                dbsession.add(this)
+    dbsession.commit()
+
+def loadSnapOnDateTime_savedisk(start_time, end_time, dbsession):
+
+    total_result = []
+    thisDate         = start_time.isoformat()
+    last_snap_string = start_time.isoformat()
+    while True: 
+        find_result = find_deposit_withdraw(thisDate)
+        if find_result != None:
+            last_snap_string = find_result["lastsnap_created_at"]
+            theLastDate = iso8601.parse_date(last_snap_string)
+            if theLastDate < end_time:
+                thisDate = last_snap_string
+                save_to_disk(find_result["found_records"], dbsession)
+                continue
+            else:
+                print("exit because %s >= %s"%(last_snap_string, str(end_time)))
+                save_to_disk(find_result["found_records"], dbsession)
+                return
+        else:
+            print("exit because read error %s"%(thisDate))
+            return
+    return
+
+
 def loadSnapOnDateTime(start_time, end_time):
 
     total_result = []
@@ -367,14 +416,15 @@ def interactive_():
                 print(each_record)
 if __name__ == "__main__":
     print(sys.argv)
-    if len(sys.argv) >= 6:
+    if len(sys.argv) >= 5:
         year = int(sys.argv[1])
         month = int(sys.argv[2])
         day   = int(sys.argv[3])
         offset = int(sys.argv[4])
-        interval = int(sys.argv[5])
-        print("%d %d %d %d %d"%(year, month, day, offset, interval))
-        searchAllSnap(year, month, day, offset, interval)
+        print("%d %d %d %d"%(year, month, day, offset))
+        start_datetime = datetime.datetime(year, month, day, 0, 0, tzinfo =  datetime.timezone.utc)
+        end_datetime   = start_datetime + datetime.timedelta(days = offset)
+        loadSnapOnDateTime_savedisk(start_datetime, end_datetime, session)
     else:
         while True:
             interactive_()
