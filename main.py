@@ -84,8 +84,8 @@ class NonInternalSnapshots(Base):
 api_url = "https://api.mixin.one/network/snapshots"
 mixin_init_time = "2006-01-02T15:04:05.999999999Z"
 
-def find_deposit_withdraw(init_time):
-    payload = {'limit':500, 'offset':init_time, 'order':"ASC"}
+def find_deposit_withdraw(init_time, order = "ASC"):
+    payload = {'limit':500, 'offset':init_time, 'order':order}
 
     while True:
         try:
@@ -157,24 +157,38 @@ def save_to_disk(found_records, dbsession):
                 dbsession.add(this)
     dbsession.commit()
 
-def loadSnapOnDateTime_savedisk(start_time, end_time, dbsession):
-
+def loadSnapOnDateTime_savedisk(start_time, end_time, dbsession, search_type  = "yesterday2today"):
     total_result = []
     thisDate         = start_time.isoformat()
     last_snap_string = start_time.isoformat()
+    if search_type == "today2yesterday":
+        order = "DESC"
+    else:
+        order = "ASC"
     while True: 
-        find_result = find_deposit_withdraw(thisDate)
+        find_result = find_deposit_withdraw(thisDate, order = order)
         if find_result != None:
             last_snap_string = find_result["lastsnap_created_at"]
             theLastDate = iso8601.parse_date(last_snap_string)
-            if theLastDate < end_time:
-                thisDate = last_snap_string
-                save_to_disk(find_result["found_records"], dbsession)
-                continue
-            else:
-                print("exit because %s >= %s"%(last_snap_string, str(end_time)))
-                save_to_disk(find_result["found_records"], dbsession)
-                return
+            print(last_snap_string)
+            if search_type == "yesterday2today":
+                if theLastDate < end_time:
+                    thisDate = last_snap_string
+                    save_to_disk(find_result["found_records"], dbsession)
+                    continue
+                else:
+                    print("exit because %s >= %s"%(last_snap_string, str(end_time)))
+                    save_to_disk(find_result["found_records"], dbsession)
+                    return
+            if search_type == "today2yesterday":
+                if theLastDate > end_time:
+                    thisDate = last_snap_string
+                    save_to_disk(find_result["found_records"], dbsession)
+                    continue
+                else:
+                    print("exit because %s <= %s"%(last_snap_string, str(end_time)))
+                    save_to_disk(find_result["found_records"], dbsession)
+                    return
         else:
             print("exit because read error %s"%(thisDate))
             return
@@ -187,7 +201,7 @@ def loadSnapOnDateTime(start_time, end_time):
     thisDate         = start_time.isoformat()
     last_snap_string = start_time.isoformat()
     while True: 
-        find_result = find_deposit_withdraw(thisDate)
+        find_result = find_deposit_withdraw(thisDate, order = "ASC")
         if find_result != None:
             for eachResult in find_result["found_records"]:
                 total_result.append(eachResult)
@@ -423,8 +437,19 @@ if __name__ == "__main__":
         offset = int(sys.argv[4])
         print("%d %d %d %d"%(year, month, day, offset))
         start_datetime = datetime.datetime(year, month, day, 0, 0, tzinfo =  datetime.timezone.utc)
+        middle_datetime = start_datetime + datetime.timedelta(days = offset/2)
         end_datetime   = start_datetime + datetime.timedelta(days = offset)
-        loadSnapOnDateTime_savedisk(start_datetime, end_datetime, session)
+        print(start_datetime, middle_datetime, end_datetime)
+        spawn_group = []
+        d = gevent.spawn(loadSnapOnDateTime_savedisk, start_datetime,  middle_datetime, session, "yesterday2today")
+        spawn_group.append(d)
+        d = gevent.spawn(loadSnapOnDateTime_savedisk, end_datetime,   middle_datetime,  session, "today2yesterday")
+        spawn_group.append(d)
+        gevent.joinall(spawn_group)
+        print(start_datetime)
+        print(middle_datetime)
+        print(end_datetime)
+
     else:
         while True:
             interactive_()
