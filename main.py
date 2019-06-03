@@ -428,11 +428,11 @@ def interactive_():
             found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at > start_of_day).filter(NonInternalSnapshots.created_at < end_of_time).filter(NonInternalSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
             for each_record in found_records:
                 print(each_record)
-def insert_spawn_by(year, month, day, offset):
-    print("%d %d %d %d"%(year, month, day, offset))
+def insert_spawn_by(year, month, day, year_end, month_end, day_end):
     start_datetime = datetime.datetime(year, month, day, 0, 0, tzinfo =  datetime.timezone.utc)
-    middle_datetime = start_datetime + datetime.timedelta(days = offset/2)
-    end_datetime   = start_datetime + datetime.timedelta(days = offset)
+    end_datetime   = datetime.datetime(year_end, month_end, day_end, 0, 0, tzinfo =  datetime.timezone.utc)
+    delta = end_datetime - start_datetime
+    middle_datetime = start_datetime + delta/2
     print(start_datetime, middle_datetime, end_datetime)
     spawn_group = []
     d = gevent.spawn(loadSnapOnDateTime_savedisk, start_datetime,  middle_datetime, session, "yesterday2today")
@@ -448,12 +448,14 @@ def insert_spawn_by(year, month, day, offset):
 
 if __name__ == "__main__":
     print(sys.argv)
-    if len(sys.argv) >= 5:
+    if len(sys.argv) >= 7:
         year = int(sys.argv[1])
         month = int(sys.argv[2])
         day   = int(sys.argv[3])
-        offset = int(sys.argv[4])
-        spawn_group = insert_spawn_by(year, month, day, offset)
+        year_end = int(sys.argv[4])
+        month_end = int(sys.argv[5])
+        day_end   = int(sys.argv[6])
+        spawn_group = insert_spawn_by(year, month, day, year_end, month_end, day_end)
         gevent.joinall(spawn_group)
 
     else:
