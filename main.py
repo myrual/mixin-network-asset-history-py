@@ -428,6 +428,24 @@ def interactive_():
             found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at > start_of_day).filter(NonInternalSnapshots.created_at < end_of_time).filter(NonInternalSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
             for each_record in found_records:
                 print(each_record)
+def insert_spawn_by(year, month, day, offset):
+    print("%d %d %d %d"%(year, month, day, offset))
+    start_datetime = datetime.datetime(year, month, day, 0, 0, tzinfo =  datetime.timezone.utc)
+    middle_datetime = start_datetime + datetime.timedelta(days = offset/2)
+    end_datetime   = start_datetime + datetime.timedelta(days = offset)
+    print(start_datetime, middle_datetime, end_datetime)
+    spawn_group = []
+    d = gevent.spawn(loadSnapOnDateTime_savedisk, start_datetime,  middle_datetime, session, "yesterday2today")
+    spawn_group.append(d)
+    d = gevent.spawn(loadSnapOnDateTime_savedisk, end_datetime,   middle_datetime,  session, "today2yesterday")
+    spawn_group.append(d)
+    print(start_datetime)
+    print(middle_datetime)
+    print(end_datetime)
+
+    return spawn_group
+
+
 if __name__ == "__main__":
     print(sys.argv)
     if len(sys.argv) >= 5:
@@ -435,20 +453,8 @@ if __name__ == "__main__":
         month = int(sys.argv[2])
         day   = int(sys.argv[3])
         offset = int(sys.argv[4])
-        print("%d %d %d %d"%(year, month, day, offset))
-        start_datetime = datetime.datetime(year, month, day, 0, 0, tzinfo =  datetime.timezone.utc)
-        middle_datetime = start_datetime + datetime.timedelta(days = offset/2)
-        end_datetime   = start_datetime + datetime.timedelta(days = offset)
-        print(start_datetime, middle_datetime, end_datetime)
-        spawn_group = []
-        d = gevent.spawn(loadSnapOnDateTime_savedisk, start_datetime,  middle_datetime, session, "yesterday2today")
-        spawn_group.append(d)
-        d = gevent.spawn(loadSnapOnDateTime_savedisk, end_datetime,   middle_datetime,  session, "today2yesterday")
-        spawn_group.append(d)
+        spawn_group = insert_spawn_by(year, month, day, offset)
         gevent.joinall(spawn_group)
-        print(start_datetime)
-        print(middle_datetime)
-        print(end_datetime)
 
     else:
         while True:
