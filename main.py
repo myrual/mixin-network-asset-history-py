@@ -479,7 +479,7 @@ def insert_spawn_by(year, month, day, year_end, month_end, day_end):
 
 if __name__ == "__main__":
     print(sys.argv)
-    if len(sys.argv) >= 6
+    if len(sys.argv) >= 6:
         year = int(sys.argv[1])
         month = int(sys.argv[2])
         day   = int(sys.argv[3])
