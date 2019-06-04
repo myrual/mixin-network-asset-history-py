@@ -486,10 +486,8 @@ if __name__ == "__main__":
         month = int(sys.argv[2])
         day   = int(sys.argv[3])
         offset_days = int(sys.argv[4])
-        minutes_inter = int(sys.argv[5])
-        searchAllSnap(year, month, day, offset_days, minutes_inter)
-
-
+        for i in range(offset_days):
+            searchAllSnap(year, month, day, 1, 10)
     else:
         while True:
             interactive_()
