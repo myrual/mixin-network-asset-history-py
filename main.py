@@ -483,11 +483,10 @@ if __name__ == "__main__":
         year = int(sys.argv[1])
         month = int(sys.argv[2])
         day   = int(sys.argv[3])
-        year_end = int(sys.argv[4])
-        month_end = int(sys.argv[5])
-        day_end   = int(sys.argv[6])
-        spawn_group = insert_spawn_by(year, month, day, year_end, month_end, day_end)
-        gevent.joinall(spawn_group)
+        offset_days = int(sys.argv[4])
+        minutes_inter = int(sys.argv[5])
+        searchAllSnap(year, month, day, offset_days, minutes_inter)
+
 
     else:
         while True:
