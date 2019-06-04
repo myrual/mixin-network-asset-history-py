@@ -307,6 +307,7 @@ def searchAllSnap(year, month, days, offset_days, minutes_interval):
         print(end)
 
     receive_spawn = gevent.spawn(receive_task, len(allspawn))
+    allspawn.append(receive_spawn)
     receive_spawn.start()
 
     print("%d greenlets: "%len(allspawn))
@@ -314,6 +315,7 @@ def searchAllSnap(year, month, days, offset_days, minutes_interval):
         group.start(each_spawn)
 
     print(end)
+    gevent.joinall(allspawn)
 
 def interactive_():
     print("load snap: 1")
