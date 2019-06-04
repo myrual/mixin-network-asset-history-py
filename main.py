@@ -285,7 +285,7 @@ def receive_task(total_number):
 
 def searchAllSnap(year, month, days, offset_days, minutes_interval):
     allspawn = []
-    group = Pool(20)
+    group = Pool(40)
     start = datetime.datetime(int(year), int(month),int(days), 0, 0, tzinfo=datetime.timezone.utc)
     end = ""
     for i in range(offset_days):
@@ -432,7 +432,7 @@ def insert_spawn_by(year, month, day, year_end, month_end, day_end):
     start_datetime = datetime.datetime(year, month, day, 0, 0, tzinfo =  datetime.timezone.utc)
     end_datetime   = datetime.datetime(year_end, month_end, day_end, 0, 0, tzinfo =  datetime.timezone.utc)
     delta = end_datetime - start_datetime
-    each_delta = delta/4
+    each_delta = delta/6
     s1 = start_datetime
     m1 = start_datetime + each_delta
     e1 = m1 + each_delta
@@ -446,15 +446,23 @@ def insert_spawn_by(year, month, day, year_end, month_end, day_end):
 
     s2 = e1
     m2 = s2 + each_delta
-    e2 = end_datetime
+    e2 = m2 + each_delta
     d = gevent.spawn(loadSnapOnDateTime_savedisk, s2,  m2, session, "yesterday2today")
     spawn_group.append(d)
     d = gevent.spawn(loadSnapOnDateTime_savedisk, e2,  m2,  session, "today2yesterday")
     spawn_group.append(d)
 
+    s3 = e2
+    m3 = s3 + each_delta
+    e3 = end_datetime
+    d = gevent.spawn(loadSnapOnDateTime_savedisk, s3,  m3, session, "yesterday2today")
+    spawn_group.append(d)
+    d = gevent.spawn(loadSnapOnDateTime_savedisk, e3,  m3,  session, "today2yesterday")
+    spawn_group.append(d)
+
+
 
     middle_datetime = start_datetime + delta/2
-    print(start_datetime, middle_datetime, end_datetime)
 
     print(s1)
     print(m1)
@@ -462,6 +470,9 @@ def insert_spawn_by(year, month, day, year_end, month_end, day_end):
     print(s2)
     print(m2)
     print(e2)
+    print(s3)
+    print(m3)
+    print(e3)
 
     return spawn_group
 
