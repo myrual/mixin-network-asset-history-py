@@ -432,16 +432,36 @@ def insert_spawn_by(year, month, day, year_end, month_end, day_end):
     start_datetime = datetime.datetime(year, month, day, 0, 0, tzinfo =  datetime.timezone.utc)
     end_datetime   = datetime.datetime(year_end, month_end, day_end, 0, 0, tzinfo =  datetime.timezone.utc)
     delta = end_datetime - start_datetime
+    each_delta = delta/4
+    s1 = start_datetime
+    m1 = start_datetime + each_delta
+    e1 = m1 + each_delta
+
+    spawn_group = []
+    d = gevent.spawn(loadSnapOnDateTime_savedisk, s1,  m1, session, "yesterday2today")
+    spawn_group.append(d)
+    d = gevent.spawn(loadSnapOnDateTime_savedisk, e1,  m1,  session, "today2yesterday")
+    spawn_group.append(d)
+
+
+    s2 = e1
+    m2 = s2 + each_delta
+    e2 = end_datetime
+    d = gevent.spawn(loadSnapOnDateTime_savedisk, s2,  m2, session, "yesterday2today")
+    spawn_group.append(d)
+    d = gevent.spawn(loadSnapOnDateTime_savedisk, e2,  m2,  session, "today2yesterday")
+    spawn_group.append(d)
+
+
     middle_datetime = start_datetime + delta/2
     print(start_datetime, middle_datetime, end_datetime)
-    spawn_group = []
-    d = gevent.spawn(loadSnapOnDateTime_savedisk, start_datetime,  middle_datetime, session, "yesterday2today")
-    spawn_group.append(d)
-    d = gevent.spawn(loadSnapOnDateTime_savedisk, end_datetime,   middle_datetime,  session, "today2yesterday")
-    spawn_group.append(d)
-    print(start_datetime)
-    print(middle_datetime)
-    print(end_datetime)
+
+    print(s1)
+    print(m1)
+    print(e1)
+    print(s2)
+    print(m2)
+    print(e2)
 
     return spawn_group
 
