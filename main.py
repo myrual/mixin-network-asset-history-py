@@ -119,6 +119,7 @@ def find_deposit_withdraw(init_time, order = "ASC"):
             return None
         except:
             print("except:" + init_time)
+            print(sys.exc_info()[0])
             gevent.sleep(1)
             continue
 
