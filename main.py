@@ -177,7 +177,6 @@ def loadSnapOnDateTime_savedisk(start_time, end_time, dbsession, search_type  = 
                     save_to_disk(find_result["found_records"], dbsession)
                     continue
                 else:
-                    print("exit because %s >= %s"%(last_snap_string, str(end_time)))
                     save_to_disk(find_result["found_records"], dbsession)
                     return
             if search_type == "today2yesterday":
@@ -186,7 +185,6 @@ def loadSnapOnDateTime_savedisk(start_time, end_time, dbsession, search_type  = 
                     save_to_disk(find_result["found_records"], dbsession)
                     continue
                 else:
-                    print("exit because %s <= %s"%(last_snap_string, str(end_time)))
                     save_to_disk(find_result["found_records"], dbsession)
                     return
         else:
@@ -211,7 +209,6 @@ def loadSnapOnDateTime(start_time, end_time):
                 thisDate = last_snap_string
                 continue
             else:
-                print("exit because %s >= %s"%(last_snap_string, str(end_time)))
                 tasks.put((total_result, last_snap_string, (start_time, end_time)))
                 return
         else:
@@ -283,6 +280,35 @@ def receive_task(total_number):
         session.commit()
         last_record = result[1]
 
+def search_oneday_snap(start, minutes_interval):
+    allspawn = []
+    group = Pool(40)
+    end = ""
+    times = 24 * 60/minutes_interval
+    this_start = start + datetime.timedelta(days = 1)
+    end = this_start + datetime.timedelta(minutes = minutes_interval)
+    d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+    allspawn.append(d)
+
+    #replicate the operation 
+    for i in range(int(times) - 1):
+        this_start = end
+        end = this_start + datetime.timedelta(minutes = minutes_interval)
+        d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+        allspawn.append(d)
+
+    receive_spawn = gevent.spawn(receive_task, len(allspawn))
+    allspawn.append(receive_spawn)
+    receive_spawn.start()
+
+    print("%d greenlets: "%len(allspawn))
+    for each_spawn in allspawn:
+        group.start(each_spawn)
+
+    print(end)
+    gevent.joinall(allspawn)
+
+
 def searchAllSnap(year, month, days, offset_days, minutes_interval):
     allspawn = []
     group = Pool(40)
@@ -323,6 +349,22 @@ def interactive_():
     print("load btc trading record: 3")
 
     selection = input("your selection:")
+    if(selection == "11"):
+        year = int(input("year:"))
+        month = int(input("month:"))
+        day = int(input("day:"))
+        offset_days = int(input("offset days:"))
+        minutes_inter = int(input("minutes interval:"))
+
+        startday = datetime.datetime(year, month, day, 0, 0, tzinfo=datetime.timezone.utc)
+        today = datetime.datetime.today()
+        print(startday)
+        print(datetime.datetime.today())
+        while startday < datetime.datetime(today.year, today.month, today.day, 0, 0, tzinfo=datetime.timezone.utc):
+            search_oneday_snap(startday, minutes_inter)
+            startday += datetime.timedelta(days = 1)
+
+
     if(selection == "1"):
         year = input("year:")
         month = input("month:")
