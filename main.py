@@ -523,13 +523,19 @@ def insert_spawn_by(year, month, day, year_end, month_end, day_end):
 
 if __name__ == "__main__":
     print(sys.argv)
-    if len(sys.argv) >= 6:
+    if len(sys.argv) >= 5:
         year = int(sys.argv[1])
         month = int(sys.argv[2])
         day   = int(sys.argv[3])
-        offset_days = int(sys.argv[4])
-        for i in range(offset_days):
-            searchAllSnap(year, month, day, 1, 10)
+        minutes_inter = int(sys.argv[4])
+
+        startday = datetime.datetime(year, month, day, 0, 0, tzinfo=datetime.timezone.utc)
+        today = datetime.datetime.today()
+        print(startday)
+        print(datetime.datetime.today())
+        while startday < datetime.datetime(today.year, today.month, today.day, 0, 0, tzinfo=datetime.timezone.utc):
+            search_oneday_snap(startday, minutes_inter)
+            startday += datetime.timedelta(days = 1)
     else:
         while True:
             interactive_()
