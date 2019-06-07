@@ -345,10 +345,11 @@ def searchAllSnap(year, month, days, offset_days, minutes_interval):
     gevent.joinall(allspawn)
 
 def interactive_():
-    print("load snap: 1")
+    print("scan snap on some day: 1")
     print("show everyday asset: 2")
-    print("load asset trading record on some day: 3")
-    print("load asset deposit and withdraw record on some day: 5")
+    print("calculate all asset trading record on some day: 3")
+    print("load asset trading record between some day(ATTENTION: Very long): 4")
+    print("load all asset deposit and withdraw record on some day: 5")
 
 
     selection = input("your selection:")
@@ -369,13 +370,12 @@ def interactive_():
 
 
     if(selection == "1"):
-        year = input("year:")
-        month = input("month:")
-        day = input("day:")
-        offset_days = int(input("offset days:"))
+        year = input("year(utc):")
+        month = input("month(utc):")
+        day = input("day(utc):")
         minutes_inter = int(input("minutes interval:"))
 
-        searchAllSnap(year, month, day, offset_days, minutes_inter)
+        searchAllSnap(year, month, day, 1, minutes_inter)
     if(selection == "2"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
         year = int(input("year:"))
@@ -495,7 +495,7 @@ def interactive_():
  
         start_of_day = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
         now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-        input_selection = input("deposit and withdraw:1\n trading : 2\n:")
+        input_selection = input("deposit and withdraw:1\n trading : 2\nYour selection:")
         if input_selection == "2":
 
             found_records = session.query(TradingSnapshots).filter(TradingSnapshots.created_at > start_of_day).filter(TradingSnapshots.created_at < end_of_time).filter(TradingSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
@@ -556,6 +556,9 @@ def insert_spawn_by(year, month, day, year_end, month_end, day_end):
 
 if __name__ == "__main__":
     print(sys.argv)
+    print("scan record from 2018 10 11 to now: python main.py 2018 10 11")
+    print("scan record from 2018 10 11 to 3 day later by 48 thread: python main.py 2018 10 11 3")
+    print("scan record from 2018 10 11 to 3 day later by 96 thread: python main.py 2018 10 11 96")
     if len(sys.argv) == 4:
         year = int(sys.argv[1])
         month = int(sys.argv[2])
@@ -570,13 +573,19 @@ if __name__ == "__main__":
             gevent.joinall(insert_spawn_by(startday.year, startday.month, startday.day, end_day.year, end_day.month, end_day.day))
             startday += datetime.timedelta(days = 3)
             print("start new loop:%s", startday)
+    elif len(sys.argv) == 5:
+        year = int(sys.argv[1])
+        month = int(sys.argv[2])
+        day   = int(sys.argv[3])
+        offset_days = int(sys.argv[4])
+        searchAllSnap(year, month, day, offset_days, 30)
     elif len(sys.argv) == 6:
         year = int(sys.argv[1])
         month = int(sys.argv[2])
         day   = int(sys.argv[3])
         offset_days = int(sys.argv[4])
-        minutes_interval = int(sys.argv[5])
-        searchAllSnap(year, month, day, offset_days, minutes_interval)
+        thread_number = int(sys.argv[5])
+        searchAllSnap(year, month, day, offset_days, 1440/thread_number)
 
     else:
         while True:
