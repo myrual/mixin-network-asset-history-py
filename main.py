@@ -446,42 +446,33 @@ def interactive_():
         print(x)
 
     if(selection == "3"):
-        year = int(input("start year:"))
-        month = int(input("start month:"))
-        day = int(input("start day"))
-        end_year = int(input("end year:"))
-        end_month = int(input("end month:"))
-        end_day = int(input("end day"))
-        end_of_time = datetime.datetime(end_year, end_month, end_day, 0, 0, tzinfo=datetime.timezone.utc)
+        year = int(input("year(utc):"))
+        month = int(input("month(utc):"))
+        day = int(input("day(utc)"))
 
-        asset_keys = list(Asset_group.keys())
-        k = 0
-        for i in asset_keys:
-            print("%d: %s"%(k, i))
-            k += 1
-        asset_index = int(input("your asset index:"))
-        key = asset_keys[asset_index]
-        asset_id = Asset_group[key]
-
- 
         start_of_day = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
+        end_of_day = start_of_day + datetime.timedelta(days = 1)
         now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
         x = PrettyTable()
-        x.field_names = ["date", "transaction", "total amount"]
+        x.field_names = ["asset name", "transaction", "total amount"]
 
-        with open(key+"daily_transactions_"+str(year) +"_"+ str(month) +"_"+ str(day)+str(end_year) +"_"+ str(end_month) +"_"+ str(end_day)+"created_at" + now+".csv", 'a', newline='') as csvfile:
+        with open("daily_transactions_"+str(year) +"_"+ str(month) +"_"+ str(day)+"created_at" + now+".csv", 'a', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
 
-            while start_of_day < end_of_time:
-                end_of_day = start_of_day + datetime.timedelta(days = 1)
-                found_records = session.query(TradingSnapshots).filter(TradingSnapshots.created_at > start_of_day).filter(TradingSnapshots.created_at < end_of_day).filter(TradingSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
+            csvwriter.writerow(["asset name","total transaction", "total value"])
+            found_records = session.query(TradingSnapshots).filter(TradingSnapshots.created_at > start_of_day).filter(TradingSnapshots.created_at < end_of_day).filter(TradingSnapshots.amount > 0).all()
+            for asset_name in Asset_group:
+                this_asset_id = Asset_group[asset_name]
                 totalAmount = 0
+                total = 0
                 for each_record in found_records:
+                    if each_record.asset_id != this_asset_id:
+                        continue
                     totalAmount += each_record.amount
-                csvwriter.writerow([datetime.date(start_of_day.year, start_of_day.month, start_of_day.day),found_records, totalAmount])
-                x.add_row([datetime.date(start_of_day.year, start_of_day.month, start_of_day.day),len(found_records), totalAmount])
-
-                start_of_day += datetime.timedelta(days = 1)
+                    total += 1
+                csvwriter.writerow([asset_name,total, totalAmount])
+                x.add_row([asset_name,total, totalAmount])
+        print(start_of_day)
         print(x)
     if(selection == "4"):
         year = int(input("start year:"))
