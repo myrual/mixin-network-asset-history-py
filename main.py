@@ -33,7 +33,7 @@ BCH_ASSET_ID    = "fd11b6e3-0b87-41f1-a41f-f0e9b49e5bf0"
 XIN_ASSET_ID    = "c94ac88f-4671-3976-b60a-09064f1811e8"
 
 Asset_group = {"BTC":BTC_ASSET_ID, "ETH":ETH_ASSET_ID, "EOS":EOS_ASSET_ID, "USDT":USDT_ASSET_ID, "XIN":XIN_ASSET_ID, "LTC":LTC_ASSET_ID, "ZEC":ZEC_ASSET_ID}
-Important_Asset = [BTC_ASSET_ID, ETH_ASSET_ID, LTC_ASSET_ID, USDT_ASSET_ID, XIN_ASSET_ID, DOGE_ASSET_ID, ZEC_ASSET_ID]
+Important_Asset = [BTC_ASSET_ID, ETH_ASSET_ID, LTC_ASSET_ID, USDT_ASSET_ID, XIN_ASSET_ID, DOGE_ASSET_ID, ZEC_ASSET_ID, EOS_ASSET_ID]
 
 
 
@@ -120,7 +120,7 @@ def find_deposit_withdraw(init_time, order = "ASC"):
         except:
             print("except:" + init_time)
             print(sys.exc_info()[0])
-            gevent.sleep(1)
+            gevent.sleep(0)
             continue
 
 engine = sqlalchemy.create_engine('sqlite:///mixin_asset.db')
@@ -347,7 +347,9 @@ def searchAllSnap(year, month, days, offset_days, minutes_interval):
 def interactive_():
     print("load snap: 1")
     print("show everyday asset: 2")
-    print("load btc trading record: 3")
+    print("load asset trading record on some day: 3")
+    print("load asset deposit and withdraw record on some day: 5")
+
 
     selection = input("your selection:")
     if(selection == "11"):
@@ -404,6 +406,47 @@ def interactive_():
                 csvwriter.writerow([datetime.date(this_day.year, this_day.month, this_day.day),int(old)])
                 x.add_row([datetime.date(this_day.year, this_day.month, this_day.day), int(old)])
         print(x)
+    if(selection == "5"):
+        year = int(input("start year:"))
+        month = int(input("start month:"))
+        day = int(input("start day"))
+        asset_keys = list(Asset_group.keys())
+        k = 0
+        for i in asset_keys:
+            print("%d: %s"%(k, i))
+            k += 1
+        asset_index = int(input("your asset index:"))
+        key = asset_keys[asset_index]
+        asset_id = Asset_group[key]
+
+ 
+        start_of_day = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
+        now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        x = PrettyTable()
+        x.field_names = ["date", "deposit", "deposit amount", "withdraw", "withdraw amount"]
+
+        with open(key+"daily_deposit_withdraw"+str(year) +"_"+ str(month) +"_"+ str(day) + "created_at" + now+".csv", 'a', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            end_of_day = start_of_day + datetime.timedelta(days = 1)
+            found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at > start_of_day).filter(NonInternalSnapshots.created_at < end_of_day).filter(NonInternalSnapshots.asset_id == asset_id).all()
+            deposit_total = 0
+            deposit_totalAmount = 0
+            withdraw_total = 0
+            withdraw_totalAmount = 0
+            for each_record in found_records:
+                print(each_record)
+                if each_record.source == "DEPOSIT_CONFIRMED":
+                    deposit_totalAmount  += each_record.amount
+                    deposit_total += 1
+                if each_record.source == "WITHDRAWAL_INITIALIZED":
+                    withdraw_totalAmount += each_record.amount
+                    withdraw_total += 1
+            csvwriter.writerow([datetime.date(start_of_day.year, start_of_day.month, start_of_day.day),deposit_total, deposit_totalAmount, withdraw_total, withdraw_totalAmount])
+            x.add_row([datetime.date(start_of_day.year, start_of_day.month, start_of_day.day),deposit_total, deposit_totalAmount, withdraw_total, withdraw_totalAmount])
+
+        print(start_of_day)
+        print(x)
+
     if(selection == "3"):
         year = int(input("start year:"))
         month = int(input("start month:"))
@@ -524,19 +567,28 @@ def insert_spawn_by(year, month, day, year_end, month_end, day_end):
 
 if __name__ == "__main__":
     print(sys.argv)
-    if len(sys.argv) >= 5:
+    if len(sys.argv) == 4:
         year = int(sys.argv[1])
         month = int(sys.argv[2])
         day   = int(sys.argv[3])
-        minutes_inter = int(sys.argv[4])
 
         startday = datetime.datetime(year, month, day, 0, 0, tzinfo=datetime.timezone.utc)
         today = datetime.datetime.today()
         print(startday)
         print(datetime.datetime.today())
         while startday < datetime.datetime(today.year, today.month, today.day, 0, 0, tzinfo=datetime.timezone.utc):
-            search_oneday_snap(startday, minutes_inter)
-            startday += datetime.timedelta(days = 1)
+            end_day = startday + datetime.timedelta(days = 3)
+            gevent.joinall(insert_spawn_by(startday.year, startday.month, startday.day, end_day.year, end_day.month, end_day.day))
+            startday += datetime.timedelta(days = 3)
+            print("start new loop:%s", startday)
+    elif len(sys.argv) == 6:
+        year = int(sys.argv[1])
+        month = int(sys.argv[2])
+        day   = int(sys.argv[3])
+        offset_days = int(sys.argv[4])
+        minutes_interval = int(sys.argv[5])
+        searchAllSnap(year, month, day, offset_days, minutes_interval)
+
     else:
         while True:
             interactive_()
