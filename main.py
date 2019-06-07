@@ -410,23 +410,17 @@ def interactive_():
         year = int(input("start year:"))
         month = int(input("start month:"))
         day = int(input("start day"))
-        asset_keys = list(Asset_group.keys())
-        k = 0
-        for i in asset_keys:
-            print("%d: %s"%(k, i))
-            k += 1
-        asset_index = int(input("your asset index:"))
-        key = asset_keys[asset_index]
-        asset_id = Asset_group[key]
-
  
         start_of_day = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
         now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
         x = PrettyTable()
         x.field_names = ["asset", "deposit", "deposit amount", "withdraw", "withdraw amount"]
 
-        with open(key+"daily_deposit_withdraw"+str(year) +"_"+ str(month) +"_"+ str(day) + "created_at" + now+".csv", 'a', newline='') as csvfile:
+        with open("daily_deposit_withdraw"+str(year) +"_"+ str(month) +"_"+ str(day) + "created_at" + now+".csv", 'a', newline='') as csvfile:
+
             csvwriter = csv.writer(csvfile)
+
+            csvwriter.writerow(["asset name", "deposit transaction", "deposit value", "withdraw transaction", "withdraw value"])
             end_of_day = start_of_day + datetime.timedelta(days = 1)
             found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at > start_of_day).filter(NonInternalSnapshots.created_at < end_of_day).all()
             for asset_name in Asset_group:
