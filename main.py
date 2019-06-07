@@ -423,26 +423,30 @@ def interactive_():
         start_of_day = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
         now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
         x = PrettyTable()
-        x.field_names = ["date", "deposit", "deposit amount", "withdraw", "withdraw amount"]
+        x.field_names = ["asset", "deposit", "deposit amount", "withdraw", "withdraw amount"]
 
         with open(key+"daily_deposit_withdraw"+str(year) +"_"+ str(month) +"_"+ str(day) + "created_at" + now+".csv", 'a', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             end_of_day = start_of_day + datetime.timedelta(days = 1)
-            found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at > start_of_day).filter(NonInternalSnapshots.created_at < end_of_day).filter(NonInternalSnapshots.asset_id == asset_id).all()
-            deposit_total = 0
-            deposit_totalAmount = 0
-            withdraw_total = 0
-            withdraw_totalAmount = 0
-            for each_record in found_records:
-                print(each_record)
-                if each_record.source == "DEPOSIT_CONFIRMED":
-                    deposit_totalAmount  += each_record.amount
-                    deposit_total += 1
-                if each_record.source == "WITHDRAWAL_INITIALIZED":
-                    withdraw_totalAmount += each_record.amount
-                    withdraw_total += 1
-            csvwriter.writerow([datetime.date(start_of_day.year, start_of_day.month, start_of_day.day),deposit_total, deposit_totalAmount, withdraw_total, withdraw_totalAmount])
-            x.add_row([datetime.date(start_of_day.year, start_of_day.month, start_of_day.day),deposit_total, deposit_totalAmount, withdraw_total, withdraw_totalAmount])
+            found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at > start_of_day).filter(NonInternalSnapshots.created_at < end_of_day).all()
+            for asset_name in Asset_group:
+                this_asset_id = Asset_group[asset_name]
+                print(asset_name, this_asset_id)
+                deposit_total = 0
+                deposit_totalAmount = 0
+                withdraw_total = 0
+                withdraw_totalAmount = 0
+                for each_record in found_records:
+                    if each_record.asset_id != this_asset_id:
+                        continue
+                    if each_record.source == "DEPOSIT_CONFIRMED":
+                        deposit_totalAmount  += each_record.amount
+                        deposit_total += 1
+                    if each_record.source == "WITHDRAWAL_INITIALIZED":
+                        withdraw_totalAmount += each_record.amount
+                        withdraw_total += 1
+                csvwriter.writerow([asset_name, deposit_total, deposit_totalAmount, withdraw_total, withdraw_totalAmount])
+                x.add_row([asset_name,deposit_total, deposit_totalAmount, withdraw_total, withdraw_totalAmount])
 
         print(start_of_day)
         print(x)
