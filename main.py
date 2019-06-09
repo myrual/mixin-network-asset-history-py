@@ -120,7 +120,7 @@ def find_deposit_withdraw(init_time, order = "ASC"):
         except:
             print("except:" + init_time)
             print(sys.exc_info()[0])
-            gevent.sleep(0)
+            gevent.sleep(5)
             continue
 
 engine = sqlalchemy.create_engine('sqlite:///mixin_asset.db')
@@ -569,10 +569,15 @@ if __name__ == "__main__":
         print(startday)
         print(datetime.datetime.today())
         while startday < datetime.datetime(today.year, today.month, today.day, 0, 0, tzinfo=datetime.timezone.utc):
-            end_day = startday + datetime.timedelta(days = 3)
-            gevent.joinall(insert_spawn_by(startday.year, startday.month, startday.day, end_day.year, end_day.month, end_day.day))
-            startday += datetime.timedelta(days = 3)
-            print("start new loop:%s", startday)
+            this_end = startday + datetime.timedelta(days = 1)
+            d = gevent.spawn(loadSnapOnDateTime_savedisk, startday,  this_end, session, "yesterday2today")
+            spawn_group = []
+            spawn_group.append(d)
+            d = gevent.spawn(loadSnapOnDateTime_savedisk, this_end,  startday,  session, "today2yesterday")
+            spawn_group.append(d)
+            gevent.joinall(spawn_group)
+            print("finish scan :%s", startday)
+            startday += datetime.timedelta(days = 1)
     elif len(sys.argv) == 5:
         year = int(sys.argv[1])
         month = int(sys.argv[2])
