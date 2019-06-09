@@ -162,6 +162,7 @@ def loadSnapOnDateTime_savedisk(start_time, end_time, dbsession, search_type  = 
     total_result = []
     thisDate         = start_time.isoformat()
     last_snap_string = start_time.isoformat()
+    print(start_time, end_time, search_type)
     if search_type == "today2yesterday":
         order = "DESC"
     else:
@@ -505,60 +506,10 @@ def interactive_():
             found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at > start_of_day).filter(NonInternalSnapshots.created_at < end_of_time).filter(NonInternalSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
             for each_record in found_records:
                 print(each_record)
-def insert_spawn_by(year, month, day, year_end, month_end, day_end):
-    start_datetime = datetime.datetime(year, month, day, 0, 0, tzinfo =  datetime.timezone.utc)
-    end_datetime   = datetime.datetime(year_end, month_end, day_end, 0, 0, tzinfo =  datetime.timezone.utc)
-    delta = end_datetime - start_datetime
-    each_delta = delta/6
-    s1 = start_datetime
-    m1 = start_datetime + each_delta
-    e1 = m1 + each_delta
-
-    spawn_group = []
-    d = gevent.spawn(loadSnapOnDateTime_savedisk, s1,  m1, session, "yesterday2today")
-    spawn_group.append(d)
-    d = gevent.spawn(loadSnapOnDateTime_savedisk, e1,  m1,  session, "today2yesterday")
-    spawn_group.append(d)
-
-
-    s2 = e1
-    m2 = s2 + each_delta
-    e2 = m2 + each_delta
-    d = gevent.spawn(loadSnapOnDateTime_savedisk, s2,  m2, session, "yesterday2today")
-    spawn_group.append(d)
-    d = gevent.spawn(loadSnapOnDateTime_savedisk, e2,  m2,  session, "today2yesterday")
-    spawn_group.append(d)
-
-    s3 = e2
-    m3 = s3 + each_delta
-    e3 = end_datetime
-    d = gevent.spawn(loadSnapOnDateTime_savedisk, s3,  m3, session, "yesterday2today")
-    spawn_group.append(d)
-    d = gevent.spawn(loadSnapOnDateTime_savedisk, e3,  m3,  session, "today2yesterday")
-    spawn_group.append(d)
-
-
-
-    middle_datetime = start_datetime + delta/2
-
-    print(s1)
-    print(m1)
-    print(e1)
-    print(s2)
-    print(m2)
-    print(e2)
-    print(s3)
-    print(m3)
-    print(e3)
-
-    return spawn_group
-
 
 if __name__ == "__main__":
     print(sys.argv)
     print("scan record from 2018 10 11 to now: python main.py 2018 10 11")
-    print("scan record from 2018 10 11 to 3 day later by 48 thread: python main.py 2018 10 11 3")
-    print("scan record from 2018 10 11 to 3 day later by 96 thread: python main.py 2018 10 11 96")
     if len(sys.argv) == 4:
         year = int(sys.argv[1])
         month = int(sys.argv[2])
@@ -569,29 +520,24 @@ if __name__ == "__main__":
         print(startday)
         print(datetime.datetime.today())
         while startday < datetime.datetime(today.year, today.month, today.day, 0, 0, tzinfo=datetime.timezone.utc):
-            this_end = startday + datetime.timedelta(days = 1)
-            d = gevent.spawn(loadSnapOnDateTime_savedisk, startday,  this_end, session, "yesterday2today")
+            middle1 = startday + datetime.timedelta(hours = 6)
+            middle2 = startday + datetime.timedelta(hours = 12)
+            middle3 = startday + datetime.timedelta(hours = 18)
             spawn_group = []
+            this_end = startday + datetime.timedelta(days = 1)
+
+            d = gevent.spawn(loadSnapOnDateTime_savedisk, startday,  middle1, session, "yesterday2today")
             spawn_group.append(d)
-            d = gevent.spawn(loadSnapOnDateTime_savedisk, this_end,  startday,  session, "today2yesterday")
+            d = gevent.spawn(loadSnapOnDateTime_savedisk, middle2,  middle1,  session, "today2yesterday")
             spawn_group.append(d)
+            d = gevent.spawn(loadSnapOnDateTime_savedisk, middle2,  middle3, session, "yesterday2today")
+            spawn_group.append(d)
+            d = gevent.spawn(loadSnapOnDateTime_savedisk, this_end,  middle3,  session, "today2yesterday")
+            spawn_group.append(d)
+
             gevent.joinall(spawn_group)
             print("finish scan :%s", startday)
             startday += datetime.timedelta(days = 1)
-    elif len(sys.argv) == 5:
-        year = int(sys.argv[1])
-        month = int(sys.argv[2])
-        day   = int(sys.argv[3])
-        offset_days = int(sys.argv[4])
-        searchAllSnap(year, month, day, offset_days, 30)
-    elif len(sys.argv) == 6:
-        year = int(sys.argv[1])
-        month = int(sys.argv[2])
-        day   = int(sys.argv[3])
-        offset_days = int(sys.argv[4])
-        thread_number = int(sys.argv[5])
-        searchAllSnap(year, month, day, offset_days, 1440/thread_number)
-
     else:
         while True:
             interactive_()
