@@ -106,3 +106,8 @@ venv.bak/
 
 #vim
 *.swp
+
+#csv
+*.csv
+*.xls
+*.xlsx

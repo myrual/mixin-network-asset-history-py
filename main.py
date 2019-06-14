@@ -32,8 +32,8 @@ ZEC_ASSET_ID    = "c996abc9-d94e-4494-b1cf-2a3fd3ac5714"
 BCH_ASSET_ID    = "fd11b6e3-0b87-41f1-a41f-f0e9b49e5bf0"
 XIN_ASSET_ID    = "c94ac88f-4671-3976-b60a-09064f1811e8"
 
-Asset_group = {"BTC":BTC_ASSET_ID, "ETH":ETH_ASSET_ID, "EOS":EOS_ASSET_ID, "USDT":USDT_ASSET_ID, "XIN":XIN_ASSET_ID, "LTC":LTC_ASSET_ID, "ZEC":ZEC_ASSET_ID}
-Important_Asset = [BTC_ASSET_ID, ETH_ASSET_ID, LTC_ASSET_ID, USDT_ASSET_ID, XIN_ASSET_ID, DOGE_ASSET_ID, ZEC_ASSET_ID, EOS_ASSET_ID]
+Asset_group = {"BTC":BTC_ASSET_ID, "ETH":ETH_ASSET_ID, "EOS":EOS_ASSET_ID, "USDT":USDT_ASSET_ID, "XIN":XIN_ASSET_ID, "LTC":LTC_ASSET_ID, "ZEC":ZEC_ASSET_ID, "DOGE":DOGE_ASSET_ID, "XRP":XRP_ASSET_ID, "DASH":DASH_ASSET_ID, "BCH":BCH_ASSET_ID}
+Important_Asset = [BTC_ASSET_ID, ETH_ASSET_ID, EOS_ASSET_ID, USDT_ASSET_ID, XIN_ASSET_ID, LTC_ASSET_ID, ZEC_ASSET_ID,DOGE_ASSET_ID, XRP_ASSET_ID, DASH_ASSET_ID, BCH_ASSET_ID]
 
 
 
@@ -84,8 +84,11 @@ class NonInternalSnapshots(Base):
 api_url = "https://api.mixin.one/network/snapshots"
 mixin_init_time = "2006-01-02T15:04:05.999999999Z"
 
-def find_deposit_withdraw(init_time, order = "ASC"):
-    payload = {'limit':500, 'offset':init_time, 'order':order}
+def find_deposit_withdraw(init_time, order = "ASC", input_asset_id = ""):
+    if input_asset_id != "":
+        payload = {'limit':500, 'offset':init_time, 'order':order, 'asset':input_asset_id}
+    else:
+        payload = {'limit':500, 'offset':init_time, 'order':order}
 
     while True:
         try:
@@ -158,7 +161,7 @@ def save_to_disk(found_records, dbsession):
                 dbsession.add(this)
     dbsession.commit()
 
-def loadSnapOnDateTime_savedisk(start_time, end_time, dbsession, search_type  = "yesterday2today"):
+def loadSnapOnDateTime_savedisk(start_time, end_time, dbsession, search_type  = "yesterday2today", input_asset_id = ""):
     total_result = []
     thisDate         = start_time.isoformat()
     last_snap_string = start_time.isoformat()
@@ -168,11 +171,15 @@ def loadSnapOnDateTime_savedisk(start_time, end_time, dbsession, search_type  = 
     else:
         order = "ASC"
     while True: 
-        find_result = find_deposit_withdraw(thisDate, order = order)
+        find_result = find_deposit_withdraw(thisDate, order, input_asset_id)
         if find_result != None:
+            if len(find_result["found_records"]) < 500:
+                save_to_disk(find_result["found_records"], dbsession)
+                return
+
             last_snap_string = find_result["lastsnap_created_at"]
             theLastDate = iso8601.parse_date(last_snap_string)
-            print(last_snap_string)
+            print("last " + str(last_snap_string) + search_type + str(thisDate) + str(end_time))
             if search_type == "yesterday2today":
                 if theLastDate < end_time:
                     thisDate = last_snap_string
@@ -195,13 +202,13 @@ def loadSnapOnDateTime_savedisk(start_time, end_time, dbsession, search_type  = 
     return
 
 
-def loadSnapOnDateTime(start_time, end_time):
+def loadSnapOnDateTime(start_time, end_time, asset_id = ""):
 
     total_result = []
     thisDate         = start_time.isoformat()
     last_snap_string = start_time.isoformat()
     while True: 
-        find_result = find_deposit_withdraw(thisDate, order = "ASC")
+        find_result = find_deposit_withdraw(thisDate, order = "ASC", asset_id = asset_id)
         if find_result != None:
             for eachResult in find_result["found_records"]:
                 total_result.append(eachResult)
@@ -311,7 +318,7 @@ def search_oneday_snap(start, minutes_interval):
     gevent.joinall(allspawn)
 
 
-def searchAllSnap(year, month, days, offset_days, minutes_interval):
+def searchAllSnap(year, month, days, offset_days, minutes_interval, asset_id = ""):
     allspawn = []
     group = Pool(40)
     start = datetime.datetime(int(year), int(month),int(days), 0, 0, tzinfo=datetime.timezone.utc)
@@ -320,7 +327,7 @@ def searchAllSnap(year, month, days, offset_days, minutes_interval):
         times = 24 * 60/minutes_interval
         this_start = start + datetime.timedelta(days = i)
         end = this_start + datetime.timedelta(minutes = minutes_interval)
-        d = gevent.spawn(loadSnapOnDateTime, this_start, end)
+        d = gevent.spawn(loadSnapOnDateTime, this_start, end, asset_id)
         print(this_start, end)
         allspawn.append(d)
 
@@ -351,6 +358,10 @@ def interactive_():
     print("calculate all asset trading record on some day: 3")
     print("load asset trading record between some day(ATTENTION: Very long): 4")
     print("load all asset deposit and withdraw record on some day: 5")
+    print("load single asset trading on between some day: 6")
+    print("load single asset deposit and withdraw on between some day: 7")
+
+
 
 
     selection = input("your selection:")
@@ -375,8 +386,17 @@ def interactive_():
         month = input("month(utc):")
         day = input("day(utc):")
         minutes_inter = int(input("minutes interval:"))
+        asset_keys = list(Asset_group.keys())
+        k = 0
+        for i in asset_keys:
+            print("%d: %s"%(k, i))
+            k += 1
+        asset_index = int(input("your asset index:"))
+        key = asset_keys[asset_index]
+        asset_id = Asset_group[key]
 
-        searchAllSnap(year, month, day, 1, minutes_inter)
+
+        searchAllSnap(year, month, day, 1, minutes_inter, asset_id)
     if(selection == "2"):
         first_day = datetime.datetime(2017, 12, 24, 0, 0, tzinfo=datetime.timezone.utc)
         year = int(input("year:"))
@@ -404,8 +424,8 @@ def interactive_():
                 old = 0
                 for each_record in found_records:
                     old += each_record.amount
-                csvwriter.writerow([datetime.date(this_day.year, this_day.month, this_day.day),int(old)])
-                x.add_row([datetime.date(this_day.year, this_day.month, this_day.day), int(old)])
+                csvwriter.writerow([this_day.date(),int(old)])
+                x.add_row([this_day.date(), int(old)])
         print(x)
     if(selection == "5"):
         year = int(input("start year:"))
@@ -506,14 +526,115 @@ def interactive_():
             found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at > start_of_day).filter(NonInternalSnapshots.created_at < end_of_time).filter(NonInternalSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
             for each_record in found_records:
                 print(each_record)
+    if(selection == "7"):
+        year = int(input("start year:"))
+        month = int(input("start month:"))
+        day = int(input("start day"))
+        end_year = int(input("end year:"))
+        end_month = int(input("end month:"))
+        end_day = int(input("end day"))
+        offset_day = int(input("offset :"))
+        end_of_time = datetime.datetime(end_year, end_month, end_day, 0, 0, tzinfo=datetime.timezone.utc)
+
+        asset_keys = list(Asset_group.keys())
+        k = 0
+        for i in asset_keys:
+            print("%d: %s"%(k, i))
+            k += 1
+        asset_index = int(input("your asset index:"))
+        key = asset_keys[asset_index]
+        asset_id = Asset_group[key]
+
+ 
+        start_of_day = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
+        now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        x = PrettyTable()
+        x.field_names = ["date", "deposit transactions", "deposit volume", "withdraw transactions", "withdraw volume"]
+
+        with open(key + "daily_deposit"+str(year) +"_"+ str(month) +"_"+ str(day)+"created_at" + now+".csv", 'a', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(["date", "deposit transactions", "deposit volume", "withdraw transactions", "withdraw volume"])
+
+            while start_of_day < end_of_time:
+                deposit_trans = 0
+                deposit_volume = 0
+                withdraw_trans = 0
+                withdraw_volume = 0
+                found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at > start_of_day).filter(NonInternalSnapshots.created_at < start_of_day + datetime.timedelta(days = offset_day)).filter(NonInternalSnapshots.asset_id == asset_id).all()
+                
+                for each_record in found_records:
+                    if each_record.source == "DEPOSIT_CONFIRMED":
+                        deposit_trans += 1
+                        deposit_volume += each_record.amount
+                    if each_record.source == "WITHDRAWAL_INITIALIZED":
+                        withdraw_trans += 1
+                        withdraw_volume += -1 * each_record.amount
+                csvwriter.writerow([start_of_day.date(),deposit_trans, deposit_volume, withdraw_trans, withdraw_volume])
+                x.add_row([start_of_day.date(),deposit_trans, deposit_volume, withdraw_trans, withdraw_volume])
+                start_of_day += datetime.timedelta(days = offset_day)
+        print(start_of_day)
+        print(x)
+
+
+    if(selection == "6"):
+        year = int(input("start year:"))
+        month = int(input("start month:"))
+        day = int(input("start day"))
+        end_year = int(input("end year:"))
+        end_month = int(input("end month:"))
+        end_day = int(input("end day"))
+        offset_day = int(input("offset :"))
+        end_of_time = datetime.datetime(end_year, end_month, end_day, 0, 0, tzinfo=datetime.timezone.utc)
+
+        asset_keys = list(Asset_group.keys())
+        k = 0
+        for i in asset_keys:
+            print("%d: %s"%(k, i))
+            k += 1
+        asset_index = int(input("your asset index:"))
+        key = asset_keys[asset_index]
+        asset_id = Asset_group[key]
+
+ 
+        start_of_day = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
+        now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        x = PrettyTable()
+        x.field_names = ["date", "transaction", "total amount"]
+
+        with open(key + "daily_transactions_"+str(year) +"_"+ str(month) +"_"+ str(day)+"created_at" + now+".csv", 'a', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(["date","total transaction", "total value"])
+
+            while start_of_day < end_of_time:
+                total_amount = 0
+
+                found_records = session.query(TradingSnapshots).filter(TradingSnapshots.created_at > start_of_day).filter(TradingSnapshots.created_at < start_of_day + datetime.timedelta(days = offset_day)).filter(TradingSnapshots.asset_id == asset_id).filter(TradingSnapshots.amount > 0).all()
+                for each_record in found_records:
+                    total_amount += each_record.amount
+                csvwriter.writerow([start_of_day.date(),len(found_records), total_amount])
+                x.add_row([start_of_day.date(),len(found_records), total_amount])
+                start_of_day += datetime.timedelta(days = offset_day)
+        print(start_of_day)
+        print(x)
+
+
 
 if __name__ == "__main__":
     print(sys.argv)
     print("scan record from 2018 10 11 to now: python main.py 2018 10 11")
-    if len(sys.argv) == 4:
+    if len(sys.argv) >= 4:
         year = int(sys.argv[1])
         month = int(sys.argv[2])
         day   = int(sys.argv[3])
+        asset_id_group = []
+        if len(sys.argv) > 4:
+            asset_name_group = sys.argv[4:]
+            for each_asset_name in asset_name_group:
+                if each_asset_name in Asset_group:
+                    asset_id_group.append(Asset_group[each_asset_name])
+        elif len(sys.argv) == 4:
+            asset_id_group.append("")
+        print(asset_id_group)
 
         startday = datetime.datetime(year, month, day, 0, 0, tzinfo=datetime.timezone.utc)
         today = datetime.datetime.today()
@@ -523,20 +644,22 @@ if __name__ == "__main__":
             middle1 = startday + datetime.timedelta(hours = 6)
             middle2 = startday + datetime.timedelta(hours = 12)
             middle3 = startday + datetime.timedelta(hours = 18)
-            spawn_group = []
+
+
             this_end = startday + datetime.timedelta(days = 1)
-
-            d = gevent.spawn(loadSnapOnDateTime_savedisk, startday,  middle1, session, "yesterday2today")
-            spawn_group.append(d)
-            d = gevent.spawn(loadSnapOnDateTime_savedisk, middle2,  middle1,  session, "today2yesterday")
-            spawn_group.append(d)
-            d = gevent.spawn(loadSnapOnDateTime_savedisk, middle2,  middle3, session, "yesterday2today")
-            spawn_group.append(d)
-            d = gevent.spawn(loadSnapOnDateTime_savedisk, this_end,  middle3,  session, "today2yesterday")
-            spawn_group.append(d)
-
-            gevent.joinall(spawn_group)
-            print("finish scan :%s", startday)
+            for each_asset_id in asset_id_group:
+                spawn_group = []
+                d = gevent.spawn(loadSnapOnDateTime_savedisk, startday,  middle1, session, "yesterday2today", each_asset_id)
+                spawn_group.append(d)
+                d = gevent.spawn(loadSnapOnDateTime_savedisk, middle2,  middle1,  session, "today2yesterday", each_asset_id)
+                spawn_group.append(d)
+                d = gevent.spawn(loadSnapOnDateTime_savedisk, middle2,  middle3, session, "yesterday2today", each_asset_id)
+                spawn_group.append(d)
+                d = gevent.spawn(loadSnapOnDateTime_savedisk, this_end,  middle3,  session, "today2yesterday", each_asset_id)
+                spawn_group.append(d)
+                gevent.joinall(spawn_group)
+                print("finish scan for %s from %s to %s"%(each_asset_id, startday, this_end))
+            print("finish scan :%s for id: %s"%(startday, str(asset_id_group)))
             startday += datetime.timedelta(days = 1)
     else:
         while True:
