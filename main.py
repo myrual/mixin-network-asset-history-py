@@ -413,19 +413,21 @@ def interactive_():
         today = datetime.datetime(year, month, day, 0, 0, tzinfo = datetime.timezone.utc)
         diff = (today - first_day).days
         daily_btc_balance = []
+        acc = 0
         x = PrettyTable()
         x.field_names = ["date", "accumulated amount"]
         now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
         with open(key+"_"+str(year) +"_"+ str(month) +"_"+ str(day)+"created_at" + now+".csv", 'a', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
-            for i in range(diff):
-                this_day = first_day + datetime.timedelta(days = i)
-                found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < this_day).filter(NonInternalSnapshots.asset_id == asset_id).all()
-                old = 0
+            found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < today).filter(NonInternalSnapshots.asset_id == asset_id).all()
+            old = 0
+            while first_day < today:
                 for each_record in found_records:
-                    old += each_record.amount
-                csvwriter.writerow([this_day.date(),int(old)])
-                x.add_row([this_day.date(), int(old)])
+                    if each_record.created_at.date() == first_day.date():
+                        acc += each_record.amount
+                csvwriter.writerow([first_day.date(),int(acc)])
+                x.add_row([first_day.date(), int(acc)])
+                first_day += datetime.timedelta(days = 1)
         print(x)
     if(selection == "5"):
         year = int(input("start year:"))
