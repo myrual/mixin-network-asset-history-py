@@ -417,7 +417,7 @@ def interactive_():
         x = PrettyTable()
         x.field_names = ["date", "accumulated amount"]
         now = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
-        with open(key+"_"+str(year) +"_"+ str(month) +"_"+ str(day)+"created_at" + now+".csv", 'a', newline='') as csvfile:
+        with open(key+"_accumulated_holding"+str(year) +"_"+ str(month) +"_"+ str(day)+"created_at" + now+".csv", 'a', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             found_records = session.query(NonInternalSnapshots).filter(NonInternalSnapshots.created_at < today).filter(NonInternalSnapshots.asset_id == asset_id).all()
             old = 0
